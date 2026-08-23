@@ -87,6 +87,8 @@ useEffect(() => {
     setMessage("Could not update status: " + error.message);
     return;
   }
+    await loadRides();
+  }
 
     async function updateReturnStatus(rideId, newStatus) {
   const { error } = await supabase
