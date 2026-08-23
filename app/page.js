@@ -300,6 +300,136 @@ await loadRides();
     boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
   }}
 >
+  <h2 style={{ marginTop: 0 }}>📅 Full Schedule by Day</h2>
+
+  {loadingRides && <p>Loading schedule...</p>}
+
+  {!loadingRides && rides.length === 0 && (
+    <p>No rides scheduled yet.</p>
+  )}
+
+  {!loadingRides &&
+    [...new Set(rides.map((ride) => ride.event_date))]
+      .filter(Boolean)
+      .sort()
+      .map((date) => {
+        const dayRides = rides
+          .filter((ride) => ride.event_date === date)
+          .sort((a, b) =>
+            (a.pickup_time || "").localeCompare(b.pickup_time || "")
+          );
+
+        return (
+          <div key={date} style={{ marginTop: "22px" }}>
+            <h3
+              style={{
+                borderBottom: "2px solid #e5e7eb",
+                paddingBottom: "8px",
+              }}
+            >
+              {new Date(date + "T12:00:00").toLocaleDateString("en-CA", {
+                weekday: "long",
+                month: "long",
+                day: "numeric",
+              })}
+            </h3>
+
+            {dayRides.map((ride) => (
+              <div
+                key={`schedule-${ride.id}`}
+                style={{
+                  padding: "14px 0",
+                  borderBottom: "1px solid #e5e7eb",
+                }}
+              >
+                <div>
+                  <strong>
+                    {ride.pickup_time || "No time"} — {ride.client_name}
+                  </strong>
+                </div>
+
+                <div>👥 {ride.group_size} passengers</div>
+
+                <div>
+                  📍 Pickup: {ride.pickup_location || "Not entered"}
+                </div>
+
+                <div>
+                  🚗 TO Driver: {ride.to_driver || "Not assigned"}
+                </div>
+
+                <div>
+                  📋 TO Status:{" "}
+                  {ride.to_status === "completed"
+                    ? "Dropped off ✅"
+                    : ride.to_status === "picked_up"
+                    ? "Picked up 👥"
+                    : ride.to_status === "on_my_way"
+                    ? "On my way 🚗"
+                    : "Upcoming 🕐"}
+                </div>
+
+                <div>
+                  💰 TO: $
+                  {(
+                    ride.to_price_type === "per_person"
+                      ? Number(ride.to_price || 0) *
+                        Number(ride.group_size || 0)
+                      : Number(ride.to_price || 0)
+                  ).toFixed(2)}
+                  {" — "}
+                  {ride.to_paid ? "Paid ✅" : "Unpaid ❌"}
+                </div>
+
+                {ride.return_requested && (
+                  <div
+                    style={{
+                      marginTop: "8px",
+                      padding: "10px",
+                      background: "#f5f7fa",
+                      borderRadius: "8px",
+                    }}
+                  >
+                    <strong>🔁 Return Requested</strong>
+
+                    <div>
+                      📍 Return to:{" "}
+                      {ride.return_location || "Not entered"}
+                    </div>
+
+                    <div>
+                      🚗 Return Driver:{" "}
+                      {ride.return_driver || "Not assigned"}
+                    </div>
+
+                    <div>
+                      📋 Return Status:{" "}
+                      {ride.return_status === "completed"
+                        ? "Returned home ✅"
+                        : ride.return_status === "picked_up"
+                        ? "Picked up 👥"
+                        : ride.return_status === "on_my_way"
+                        ? "On my way 🚗"
+                        : "Waiting ⏳"}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        );
+      })}
+</div>
+          
+<div
+  style={{
+    marginTop: "25px",
+    background: "white",
+    padding: "20px",
+    borderRadius: "12px",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+  }}
+>
 <h2 style={{ marginTop: 0 }}>Active TO Rides 🚗</h2>
 
   {loadingRides && <p>Loading rides...</p>}
