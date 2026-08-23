@@ -77,6 +77,19 @@ useEffect(() => {
   setRides(data || []);
   setLoadingRides(false);
 }
+  async function updateRideStatus(rideId, newStatus) {
+  const { error } = await supabase
+    .from("Bookings")
+    .update({ to_status: newStatus })
+    .eq("id", rideId);
+
+  if (error) {
+    setMessage("Could not update status: " + error.message);
+    return;
+  }
+
+  await loadRides();
+}
   async function handleLogin() {
     setMessage("Signing in...");
 
@@ -308,8 +321,52 @@ await loadRides();
         <div>
           🚗 Driver: {ride.to_driver || "Not assigned"}
         </div>
+<div style={{ marginTop: "6px" }}>
+  📋 Status:{" "}
+  <strong>
+    {ride.to_status === "upcoming"
+      ? "Upcoming 🕐"
+      : ride.to_status === "on_my_way"
+      ? "On my way 🚗"
+      : ride.to_status === "picked_up"
+      ? "Picked up 👥"
+      : ride.to_status === "completed"
+      ? "Dropped off ✅"
+      : ride.to_status || "Upcoming 🕐"}
+  </strong>
+</div>
+        <div
+  style={{
+    display: "flex",
+    gap: "8px",
+    flexWrap: "wrap",
+    marginTop: "10px",
+  }}
+>
+  <button
+    type="button"
+    onClick={() => updateRideStatus(ride.id, "on_my_way")}
+    style={statusButtonStyle}
+  >
+    🚗 On my way
+  </button>
 
-        
+  <button
+    type="button"
+    onClick={() => updateRideStatus(ride.id, "picked_up")}
+    style={statusButtonStyle}
+  >
+    👥 Picked up
+  </button>
+
+  <button
+    type="button"
+    onClick={() => updateRideStatus(ride.id, "completed")}
+    style={statusButtonStyle}
+  >
+    ✅ Dropped off
+  </button>
+</div>
 
 <div style={{ marginTop: "8px" }}>
   💰 TO YQM:{" "}
@@ -905,4 +962,15 @@ const formCardStyle = {
   borderRadius: "12px",
   boxShadow:
     "0 2px 8px rgba(0,0,0,0.08)",
+};
+
+
+const statusButtonStyle = {
+  padding: "10px 12px",
+  borderRadius: "8px",
+  border: "1px solid #cbd5e1",
+  background: "white",
+  fontSize: "14px",
+  fontWeight: "bold",
+  cursor: "pointer",
 };
