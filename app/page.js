@@ -300,7 +300,7 @@ await loadRides();
     boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
   }}
 >
-  <h2 style={{ marginTop: 0 }}>📅 Full Schedule by Day</h2>
+  <h2 style={{ marginTop: 0 }}>📅 Full Schedule</h2>
 
   {loadingRides && <p>Loading schedule...</p>}
 
@@ -323,6 +323,7 @@ await loadRides();
           <div key={date} style={{ marginTop: "22px" }}>
             <h3
               style={{
+                marginBottom: "8px",
                 borderBottom: "2px solid #e5e7eb",
                 paddingBottom: "8px",
               }}
@@ -332,90 +333,64 @@ await loadRides();
                 month: "long",
                 day: "numeric",
               })}
+              {" — "}
+              {dayRides.length} booking{dayRides.length !== 1 ? "s" : ""}
             </h3>
 
-            {dayRides.map((ride) => (
-              <div
-                key={`schedule-${ride.id}`}
-                style={{
-                  padding: "14px 0",
-                  borderBottom: "1px solid #e5e7eb",
-                }}
-              >
-                <div>
-                  <strong>
-                    {ride.pickup_time || "No time"} — {ride.client_name}
-                  </strong>
-                </div>
+            {dayRides.map((ride) => {
+              const toTotal =
+                ride.to_price_type === "per_person"
+                  ? Number(ride.to_price || 0) * Number(ride.group_size || 0)
+                  : Number(ride.to_price || 0);
 
-                <div>👥 {ride.group_size} passengers</div>
-
-                <div>
-                  📍 Pickup: {ride.pickup_location || "Not entered"}
-                </div>
-
-                <div>
-                  🚗 TO Driver: {ride.to_driver || "Not assigned"}
-                </div>
-
-                <div>
-                  📋 TO Status:{" "}
-                  {ride.to_status === "completed"
-                    ? "Dropped off ✅"
-                    : ride.to_status === "picked_up"
-                    ? "Picked up 👥"
-                    : ride.to_status === "on_my_way"
-                    ? "On my way 🚗"
-                    : "Upcoming 🕐"}
-                </div>
-
-                <div>
-                  💰 TO: $
-                  {(
-                    ride.to_price_type === "per_person"
-                      ? Number(ride.to_price || 0) *
-                        Number(ride.group_size || 0)
-                      : Number(ride.to_price || 0)
-                  ).toFixed(2)}
-                  {" — "}
-                  {ride.to_paid ? "Paid ✅" : "Unpaid ❌"}
-                </div>
-
-                {ride.return_requested && (
-                  <div
-                    style={{
-                      marginTop: "8px",
-                      padding: "10px",
-                      background: "#f5f7fa",
-                      borderRadius: "8px",
-                    }}
-                  >
-                    <strong>🔁 Return Requested</strong>
-
-                    <div>
-                      📍 Return to:{" "}
-                      {ride.return_location || "Not entered"}
-                    </div>
-
-                    <div>
-                      🚗 Return Driver:{" "}
-                      {ride.return_driver || "Not assigned"}
-                    </div>
-
-                    <div>
-                      📋 Return Status:{" "}
-                      {ride.return_status === "completed"
-                        ? "Returned home ✅"
-                        : ride.return_status === "picked_up"
-                        ? "Picked up 👥"
-                        : ride.return_status === "on_my_way"
-                        ? "On my way 🚗"
-                        : "Waiting ⏳"}
-                    </div>
+              return (
+                <div
+                  key={`schedule-${ride.id}`}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns:
+                      "90px minmax(130px, 1.4fr) 70px minmax(110px, 1fr) 110px 110px 70px",
+                    gap: "8px",
+                    alignItems: "center",
+                    padding: "10px 0",
+                    borderBottom: "1px solid #e5e7eb",
+                    fontSize: "14px",
+                    overflowX: "auto",
+                  }}
+                >
+                  <div>
+                    <strong>{ride.pickup_time || "—"}</strong>
                   </div>
-                )}
-              </div>
-            ))}
+
+                  <div>
+                    <strong>{ride.client_name}</strong>
+                  </div>
+
+                  <div>👥 {ride.group_size}</div>
+
+                  <div>{ride.to_driver || "Unassigned"}</div>
+
+                  <div>
+                    ${toTotal.toFixed(2)}{" "}
+                    {ride.to_paid ? "✅" : "❌"}
+                  </div>
+
+                  <div>
+                    {ride.to_status === "completed"
+                      ? "Dropped off ✅"
+                      : ride.to_status === "picked_up"
+                      ? "Picked up 👥"
+                      : ride.to_status === "on_my_way"
+                      ? "On my way 🚗"
+                      : "Upcoming 🕐"}
+                  </div>
+
+                  <div>
+                    {ride.return_requested ? "🔁 Return" : "—"}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         );
       })}
