@@ -79,51 +79,47 @@ export default function Home() {
     setMessage("Saving ride...");
 
     const booking = {
-      client_name: formData.client_name,
-      phone: formData.phone || null,
+  client_name: formData.client_name,
+  phone: formData.phone || null,
+  group_size: Number(formData.group_size),
+  event_date: formData.event_date,
+  pickup_time: formData.pickup_time || null,
+  pickup_location: formData.pickup_location || null,
 
-      group_size: Number(formData.group_size),
+  to_driver: formData.driver || null,
+  to_price_type: pricingType,
+  to_price:
+    formData.to_price === ""
+      ? null
+      : Number(formData.to_price),
+  to_paid: formData.to_paid,
 
-      event_date: formData.event_date,
+  return_requested: formData.return_requested,
+  return_location: formData.return_requested
+    ? formData.return_location || null
+    : null,
+  return_driver: formData.return_requested
+    ? formData.return_driver || null
+    : null,
+  return_price_type: formData.return_requested
+    ? returnPricingType
+    : null,
+  return_price:
+    formData.return_requested && formData.return_price !== ""
+      ? Number(formData.return_price)
+      : null,
+  return_paid: formData.return_requested
+    ? formData.return_paid
+    : false,
 
-      pickup_time: formData.pickup_time || null,
-      pickup_location: formData.pickup_location || null,
+  notes: formData.notes || null,
 
-      driver: formData.driver || null,
-
-      to_price_type: pricingType,
-      to_price:
-        formData.to_price === ""
-          ? null
-          : Number(formData.to_price),
-
-      to_paid: formData.to_paid,
-
-      return_requested: formData.return_requested,
-
-      return_location: formData.return_requested
-        ? formData.return_location || null
-        : null,
-
-      return_driver: formData.return_requested
-        ? formData.return_driver || null
-        : null,
-
-      return_price_type: formData.return_requested
-        ? returnPricingType
-        : null,
-
-      return_price:
-        formData.return_requested && formData.return_price !== ""
-          ? Number(formData.return_price)
-          : null,
-
-      return_paid: formData.return_requested
-        ? formData.return_paid
-        : false,
-
-      notes: formData.notes || null,
-    };
+  event_name: "YQM Country Fest",
+  to_status: "upcoming",
+  return_status: formData.return_requested ? "waiting" : null,
+  return_queue_position: null,
+  cancelled: false,
+};
 
     const { error } = await supabase
       .from("Bookings")
