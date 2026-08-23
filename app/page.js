@@ -41,7 +41,27 @@ export default function Home() {
 
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
+const [rides, setRides] = useState([]);
+const [loadingRides, setLoadingRides] = useState(false);
+  async function loadRides() {
+  setLoadingRides(true);
 
+  const { data, error } = await supabase
+    .from("Bookings")
+    .select("*")
+    .order("event_date", { ascending: true })
+    .order("pickup_time", { ascending: true });
+
+  if (error) {
+    console.error(error);
+    setMessage("Could not load rides: " + error.message);
+    setLoadingRides(false);
+    return;
+  }
+
+  setRides(data || []);
+  setLoadingRides(false);
+}
   async function handleLogin() {
     setMessage("Signing in...");
 
@@ -57,6 +77,7 @@ export default function Home() {
 
     setLoggedIn(true);
     setMessage("Signed in successfully ✅");
+await loadRides();
   }
 
   async function handleSaveRide() {
@@ -133,7 +154,8 @@ export default function Home() {
     }
 
     setMessage("Ride saved successfully! 🚗✅");
-
+await loadRides();
+    
     setFormData(emptyForm);
     setPricingType("per_person");
     setReturnPricingType("per_person");
@@ -228,7 +250,56 @@ export default function Home() {
             <p>
               Manage your ride bookings from one place.
             </p>
+<div
+  style={{
+    marginTop: "25px",
+    background: "white",
+    padding: "20px",
+    borderRadius: "12px",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+  }}
+>
+  <h2 style={{ marginTop: 0 }}>Upcoming Rides 🚗</h2>
 
+  {loadingRides && <p>Loading rides...</p>}
+
+  {!loadingRides && rides.length === 0 && (
+    <p>No rides saved yet.</p>
+  )}
+
+  {!loadingRides &&
+    rides.map((ride) => (
+      <div
+        key={ride.id}
+        style={{
+          padding: "15px 0",
+          borderBottom: "1px solid #e5e7eb",
+        }}
+      >
+        <strong>{ride.client_name}</strong>
+
+        <div>
+          {ride.event_date} • {ride.pickup_time || "No time"}
+        </div>
+
+        <div>
+          👥 {ride.group_size} passengers
+        </div>
+
+        <div>
+          📍 {ride.pickup_location || "No pickup location"}
+        </div>
+
+        <div>
+          🚗 Driver: {ride.to_driver || "Not assigned"}
+        </div>
+
+        <div>
+          💰 {ride.to_paid ? "Paid" : "Unpaid"}
+        </div>
+      </div>
+    ))}
+</div>
             <div
               style={{
                 display: "grid",
