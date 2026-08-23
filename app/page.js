@@ -294,9 +294,45 @@ await loadRides();
           🚗 Driver: {ride.to_driver || "Not assigned"}
         </div>
 
-        <div>
-          💰 {ride.to_paid ? "Paid" : "Unpaid"}
-        </div>
+        
+
+<div style={{ marginTop: "8px" }}>
+  💰 TO YQM:{" "}
+  <strong>
+    $
+    {ride.to_price_type === "per_person"
+      ? Number(ride.to_price || 0) * Number(ride.group_size || 0)
+      : Number(ride.to_price || 0)}
+  </strong>{" "}
+  — {ride.to_paid ? "Paid ✅" : "Unpaid ❌"}
+</div>
+
+{ride.return_requested && (
+  <div>
+    🔁 Return:{" "}
+    <strong>
+      $
+      {ride.return_price_type === "per_person"
+        ? Number(ride.return_price || 0) * Number(ride.group_size || 0)
+        : Number(ride.return_price || 0)}
+    </strong>{" "}
+    — {ride.return_paid ? "Paid ✅" : "Unpaid ❌"}
+  </div>
+)}
+
+<div style={{ fontWeight: "bold", marginTop: "4px" }}>
+  Booking Total: $
+  {(
+    (ride.to_price_type === "per_person"
+      ? Number(ride.to_price || 0) * Number(ride.group_size || 0)
+      : Number(ride.to_price || 0)) +
+    (ride.return_requested
+      ? ride.return_price_type === "per_person"
+        ? Number(ride.return_price || 0) * Number(ride.group_size || 0)
+        : Number(ride.return_price || 0)
+      : 0)
+  ).toFixed(2)}
+</div>
       </div>
     ))}
 </div>
