@@ -546,7 +546,6 @@ await loadRides();
   style={{
     marginTop: "25px",
     background: "white",
-              style={{
                 display: "grid",
                 gridTemplateColumns:
                   "repeat(auto-fit, minmax(180px, 1fr))",
