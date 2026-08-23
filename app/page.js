@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -43,6 +43,21 @@ export default function Home() {
   const [saving, setSaving] = useState(false);
 const [rides, setRides] = useState([]);
 const [loadingRides, setLoadingRides] = useState(false);
+useEffect(() => {
+  async function restoreSession() {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (session) {
+      setLoggedIn(true);
+      await loadRides();
+    }
+  }
+
+  restoreSession();
+}, []);
+  
   async function loadRides() {
   setLoadingRides(true);
 
