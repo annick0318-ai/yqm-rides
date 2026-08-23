@@ -335,7 +335,7 @@ await loadRides();
       : ride.to_status || "Upcoming 🕐"}
   </strong>
 </div>
-        <div
+ <div
   style={{
     display: "flex",
     gap: "8px",
@@ -343,29 +343,35 @@ await loadRides();
     marginTop: "10px",
   }}
 >
-  <button
-    type="button"
-    onClick={() => updateRideStatus(ride.id, "on_my_way")}
-    style={statusButtonStyle}
-  >
-    🚗 On my way
-  </button>
+  {ride.to_status === "upcoming" && (
+    <button
+      type="button"
+      onClick={() => updateRideStatus(ride.id, "on_my_way")}
+      style={statusButtonStyle}
+    >
+      🚗 On my way
+    </button>
+  )}
 
-  <button
-    type="button"
-    onClick={() => updateRideStatus(ride.id, "picked_up")}
-    style={statusButtonStyle}
-  >
-    👥 Picked up
-  </button>
+  {ride.to_status === "on_my_way" && (
+    <button
+      type="button"
+      onClick={() => updateRideStatus(ride.id, "picked_up")}
+      style={statusButtonStyle}
+    >
+      👥 Picked up
+    </button>
+  )}
 
-  <button
-    type="button"
-    onClick={() => updateRideStatus(ride.id, "completed")}
-    style={statusButtonStyle}
-  >
-    ✅ Dropped off
-  </button>
+  {ride.to_status === "picked_up" && (
+    <button
+      type="button"
+      onClick={() => updateRideStatus(ride.id, "completed")}
+      style={statusButtonStyle}
+    >
+      ✅ Dropped off
+    </button>
+  )}
 </div>
 
 <div style={{ marginTop: "8px" }}>
