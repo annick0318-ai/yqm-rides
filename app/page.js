@@ -88,6 +88,17 @@ useEffect(() => {
     return;
   }
 
+    async function updateReturnStatus(rideId, newStatus) {
+  const { error } = await supabase
+    .from("Bookings")
+    .update({ return_status: newStatus })
+    .eq("id", rideId);
+
+  if (error) {
+    setMessage("Could not update return status: " + error.message);
+    return;
+  }
+
   await loadRides();
 }
   async function handleLogin() {
@@ -287,7 +298,7 @@ await loadRides();
     boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
   }}
 >
-  <h2 style={{ marginTop: 0 }}>Upcoming Rides 🚗</h2>
+<h2 style={{ marginTop: 0 }}>Active TO Rides 🚗</h2>
 
   {loadingRides && <p>Loading rides...</p>}
 
@@ -295,8 +306,10 @@ await loadRides();
     <p>No rides saved yet.</p>
   )}
 
-  {!loadingRides &&
-    rides.map((ride) => (
+{!loadingRides &&
+  rides
+    .filter((ride) => ride.to_status !== "completed")
+    .map((ride) => (
       <div
         key={ride.id}
         style={{
@@ -414,7 +427,125 @@ await loadRides();
       </div>
     ))}
 </div>
+           <div
+  style={{
+    marginTop: "25px",
+    background: "white",
+    padding: "20px",
+    borderRadius: "12px",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+  }}
+>
+  <h2 style={{ marginTop: 0 }}>Return Queue 🔁</h2>
+
+  {!loadingRides &&
+    rides.filter(
+      (ride) =>
+        ride.return_requested &&
+        ride.return_status !== "completed"
+    ).length === 0 && (
+      <p>No return rides waiting.</p>
+    )}
+
+  {!loadingRides &&
+    rides
+      .filter(
+        (ride) =>
+          ride.return_requested &&
+          ride.return_status !== "completed"
+      )
+      .map((ride) => (
+        <div
+          key={`return-${ride.id}`}
+          style={{
+            padding: "15px 0",
+            borderBottom: "1px solid #e5e7eb",
+          }}
+        >
+          <strong>{ride.client_name}</strong>
+
+          <div>👥 {ride.group_size} passengers</div>
+
+          <div>
+            📍 Return to:{" "}
+            {ride.return_location || "No return location"}
+          </div>
+
+          <div>
+            🚗 Return Driver:{" "}
+            {ride.return_driver || "Not assigned"}
+          </div>
+
+          <div>
+            📋 Return Status:{" "}
+            <strong>
+              {ride.return_status === "waiting"
+                ? "Waiting ⏳"
+                : ride.return_status === "on_my_way"
+                ? "On my way 🚗"
+                : ride.return_status === "picked_up"
+                ? "Picked up 👥"
+                : ride.return_status === "completed"
+                ? "Returned home ✅"
+                : ride.return_status || "Waiting ⏳"}
+            </strong>
+          </div>
+<div
+  style={{
+    display: "flex",
+    gap: "8px",
+    flexWrap: "wrap",
+    marginTop: "10px",
+  }}
+>
+  {(ride.return_status === "waiting" || !ride.return_status) && (
+    <button
+      type="button"
+      onClick={() => updateReturnStatus(ride.id, "on_my_way")}
+      style={statusButtonStyle}
+    >
+      🚗 On my way
+    </button>
+  )}
+
+  {ride.return_status === "on_my_way" && (
+    <button
+      type="button"
+      onClick={() => updateReturnStatus(ride.id, "picked_up")}
+      style={statusButtonStyle}
+    >
+      👥 Picked up
+    </button>
+  )}
+
+  {ride.return_status === "picked_up" && (
+    <button
+      type="button"
+      onClick={() => updateReturnStatus(ride.id, "completed")}
+      style={statusButtonStyle}
+    >
+      ✅ Returned home
+    </button>
+  )}
+</div>
+          <div>
+            💰 Return:{" "}
+            <strong>
+              $
+              {ride.return_price_type === "per_person"
+                ? Number(ride.return_price || 0) *
+                  Number(ride.group_size || 0)
+                : Number(ride.return_price || 0)}
+            </strong>{" "}
+            — {ride.return_paid ? "Paid ✅" : "Unpaid ❌"}
+          </div>
+        </div>
+      ))}
+</div>
             <div
+  style={{
+    marginTop: "25px",
+    background: "white",
               style={{
                 display: "grid",
                 gridTemplateColumns:
