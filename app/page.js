@@ -1073,4 +1073,964 @@ export default function Home() {
                       </strong>
 
                       <span
-                       
+                        style={mutedTextStyle}
+                      >
+                        {" "}
+                        · {ride.group_size}{" "}
+                        passengers
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        openEditRide(ride)
+                      }
+                      style={
+                        smallActionButtonStyle
+                      }
+                    >
+                      ✏️ Edit
+                    </button>
+                  </div>
+
+                  <div>
+                    📍 Return to:{" "}
+                    {ride.return_location ||
+                      "No return location"}
+                  </div>
+
+                  <div>
+                    🚗 Return Driver:{" "}
+                    {ride.return_driver ||
+                      "Not assigned"}
+                  </div>
+
+                  <div>
+                    📋 Return Status:{" "}
+                    <strong>
+                      {returnStatusText(
+                        ride.return_status
+                      )}
+                    </strong>
+                  </div>
+
+                  <div style={actionRowStyle}>
+                    {(!ride.return_status ||
+                      ride.return_status ===
+                        "waiting") && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateReturnStatus(
+                            ride.id,
+                            "on_my_way"
+                          )
+                        }
+                        style={
+                          statusButtonStyle
+                        }
+                      >
+                        🚗 On my way
+                      </button>
+                    )}
+
+                    {ride.return_status ===
+                      "on_my_way" && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateReturnStatus(
+                            ride.id,
+                            "picked_up"
+                          )
+                        }
+                        style={
+                          statusButtonStyle
+                        }
+                      >
+                        👥 Picked up
+                      </button>
+                    )}
+
+                    {ride.return_status ===
+                      "picked_up" && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateReturnStatus(
+                            ride.id,
+                            "completed"
+                          )
+                        }
+                        style={
+                          statusButtonStyle
+                        }
+                      >
+                        ✅ Returned home
+                      </button>
+                    )}
+                  </div>
+
+                  <div
+                    style={messageButtonRowStyle}
+                  >
+                    <button
+                      type="button"
+                      onClick={() =>
+                        textReturnOnMyWay(
+                          ride
+                        )
+                      }
+                      style={
+                        textMessageButtonStyle
+                      }
+                    >
+                      📱 Text: On my way
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        textReturnImHere(ride)
+                      }
+                      style={
+                        textMessageButtonStyle
+                      }
+                    >
+                      📍 Text: I’m here
+                    </button>
+                  </div>
+
+                  <div
+                    style={{
+                      marginTop: "10px",
+                    }}
+                  >
+                    💰 Return:{" "}
+                    <strong>
+                      $
+                      {getReturnTotal(
+                        ride
+                      ).toFixed(2)}
+                    </strong>
+                    {" — "}
+                    {ride.return_paid
+                      ? "Paid ✅"
+                      : "Unpaid ❌"}
+                  </div>
+                </div>
+              ))}
+            </section>
+
+            {showForm && (
+              <section
+                id="booking-form"
+                style={formCardStyle}
+              >
+                <div
+                  style={formHeaderStyle}
+                >
+                  <h2 style={{ margin: 0 }}>
+                    {editingRideId
+                      ? "✏️ Edit Booking"
+                      : "➕ New Ride"}
+                  </h2>
+
+                  <button
+                    type="button"
+                    onClick={resetForm}
+                    style={closeButtonStyle}
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div style={gridStyle}>
+                  <Field label="Client / Group Name">
+                    <input
+                      style={inputStyle}
+                      type="text"
+                      value={
+                        formData.client_name
+                      }
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          client_name:
+                            e.target.value,
+                        })
+                      }
+                    />
+                  </Field>
+
+                  <Field label="Phone Number">
+                    <input
+                      style={inputStyle}
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          phone: e.target.value,
+                        })
+                      }
+                    />
+                  </Field>
+
+                  <Field label="Group Size">
+                    <input
+                      style={inputStyle}
+                      type="number"
+                      min="1"
+                      value={
+                        formData.group_size
+                      }
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          group_size:
+                            e.target.value,
+                        })
+                      }
+                    />
+                  </Field>
+
+                  <Field label="Date">
+                    <input
+                      style={inputStyle}
+                      type="date"
+                      value={
+                        formData.event_date
+                      }
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          event_date:
+                            e.target.value,
+                        })
+                      }
+                    />
+                  </Field>
+
+                  <Field label="Pickup Time">
+                    <input
+                      style={inputStyle}
+                      type="time"
+                      value={
+                        formData.pickup_time
+                      }
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          pickup_time:
+                            e.target.value,
+                        })
+                      }
+                    />
+                  </Field>
+
+                  <Field label="Pickup Location">
+                    <input
+                      style={inputStyle}
+                      type="text"
+                      value={
+                        formData.pickup_location
+                      }
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          pickup_location:
+                            e.target.value,
+                        })
+                      }
+                    />
+                  </Field>
+
+                  <Field label="TO Driver">
+                    <select
+                      style={inputStyle}
+                      value={formData.driver}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          driver:
+                            e.target.value,
+                        })
+                      }
+                    >
+                      <option value="">
+                        Select driver
+                      </option>
+
+                      {DRIVER_OPTIONS.map(
+                        (driver) => (
+                          <option
+                            key={driver}
+                            value={driver}
+                          >
+                            {driver}
+                          </option>
+                        )
+                      )}
+                    </select>
+                  </Field>
+                </div>
+
+                <h3
+                  style={formSectionTitleStyle}
+                >
+                  🚗 Ride TO Event
+                </h3>
+
+                <div style={gridStyle}>
+                  <Field label="Pricing Type">
+                    <select
+                      style={inputStyle}
+                      value={pricingType}
+                      onChange={(e) =>
+                        setPricingType(
+                          e.target.value
+                        )
+                      }
+                    >
+                      <option value="per_person">
+                        Per person
+                      </option>
+
+                      <option value="flat">
+                        Flat group price
+                      </option>
+                    </select>
+                  </Field>
+
+                  <Field
+                    label={
+                      pricingType ===
+                      "per_person"
+                        ? "Price Per Person"
+                        : "Flat Group Price"
+                    }
+                  >
+                    <input
+                      style={inputStyle}
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formData.to_price}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          to_price:
+                            e.target.value,
+                        })
+                      }
+                    />
+                  </Field>
+
+                  <Field label="Payment">
+                    <select
+                      style={inputStyle}
+                      value={
+                        formData.to_paid
+                          ? "paid"
+                          : "unpaid"
+                      }
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          to_paid:
+                            e.target.value ===
+                            "paid",
+                        })
+                      }
+                    >
+                      <option value="unpaid">
+                        Unpaid
+                      </option>
+
+                      <option value="paid">
+                        Paid
+                      </option>
+                    </select>
+                  </Field>
+                </div>
+
+                <h3
+                  style={formSectionTitleStyle}
+                >
+                  🔁 Return Ride
+                </h3>
+
+                <div style={gridStyle}>
+                  <Field label="Return Requested">
+                    <select
+                      style={inputStyle}
+                      value={
+                        formData.return_requested
+                          ? "yes"
+                          : "no"
+                      }
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          return_requested:
+                            e.target.value ===
+                            "yes",
+                        })
+                      }
+                    >
+                      <option value="no">
+                        No
+                      </option>
+
+                      <option value="yes">
+                        Yes
+                      </option>
+                    </select>
+                  </Field>
+
+                  {formData.return_requested && (
+                    <>
+                      <Field label="Return Location">
+                        <input
+                          style={inputStyle}
+                          type="text"
+                          value={
+                            formData.return_location
+                          }
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              return_location:
+                                e.target.value,
+                            })
+                          }
+                        />
+                      </Field>
+
+                      <Field label="Return Driver">
+                        <select
+                          style={inputStyle}
+                          value={
+                            formData.return_driver
+                          }
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              return_driver:
+                                e.target.value,
+                            })
+                          }
+                        >
+                          <option value="">
+                            Select driver
+                          </option>
+
+                          {DRIVER_OPTIONS.map(
+                            (driver) => (
+                              <option
+                                key={`return-${driver}`}
+                                value={driver}
+                              >
+                                {driver}
+                              </option>
+                            )
+                          )}
+                        </select>
+                      </Field>
+
+                      <Field label="Return Pricing Type">
+                        <select
+                          style={inputStyle}
+                          value={
+                            returnPricingType
+                          }
+                          onChange={(e) =>
+                            setReturnPricingType(
+                              e.target.value
+                            )
+                          }
+                        >
+                          <option value="per_person">
+                            Per person
+                          </option>
+
+                          <option value="flat">
+                            Flat group price
+                          </option>
+                        </select>
+                      </Field>
+
+                      <Field
+                        label={
+                          returnPricingType ===
+                          "per_person"
+                            ? "Return Price Per Person"
+                            : "Return Flat Group Price"
+                        }
+                      >
+                        <input
+                          style={inputStyle}
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={
+                            formData.return_price
+                          }
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              return_price:
+                                e.target.value,
+                            })
+                          }
+                        />
+                      </Field>
+
+                      <Field label="Return Payment">
+                        <select
+                          style={inputStyle}
+                          value={
+                            formData.return_paid
+                              ? "paid"
+                              : "unpaid"
+                          }
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              return_paid:
+                                e.target.value ===
+                                "paid",
+                            })
+                          }
+                        >
+                          <option value="unpaid">
+                            Unpaid
+                          </option>
+
+                          <option value="paid">
+                            Paid
+                          </option>
+                        </select>
+                      </Field>
+                    </>
+                  )}
+                </div>
+
+                <div
+                  style={{
+                    marginTop: "20px",
+                  }}
+                >
+                  <Field label="Notes">
+                    <textarea
+                      style={{
+                        ...inputStyle,
+                        minHeight: "100px",
+                      }}
+                      value={formData.notes}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          notes:
+                            e.target.value,
+                        })
+                      }
+                    />
+                  </Field>
+                </div>
+
+                <div
+                  style={formActionRowStyle}
+                >
+                  <button
+                    type="button"
+                    onClick={resetForm}
+                    style={cancelButtonStyle}
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleSaveRide}
+                    disabled={saving}
+                    style={{
+                      ...saveButtonStyle,
+                      opacity:
+                        saving ? 0.6 : 1,
+                    }}
+                  >
+                    {saving
+                      ? "Saving..."
+                      : editingRideId
+                      ? "Update Booking"
+                      : "Save Ride"}
+                  </button>
+                </div>
+              </section>
+            )}
+          </>
+        )}
+
+        {message && (
+          <div style={messageStyle}>
+            {message}
+          </div>
+        )}
+      </div>
+    </main>
+  );
+}
+
+function SummaryBox({
+  icon,
+  value,
+  label,
+}) {
+  return (
+    <div style={summaryBoxStyle}>
+      <div style={{ fontSize: "24px" }}>
+        {icon}
+      </div>
+
+      <strong
+        style={{
+          fontSize: "22px",
+        }}
+      >
+        {value}
+      </strong>
+
+      <span style={mutedTextStyle}>
+        {label}
+      </span>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  children,
+}) {
+  return (
+    <label style={fieldStyle}>
+      <span
+        style={{
+          fontWeight: "bold",
+        }}
+      >
+        {label}
+      </span>
+
+      {children}
+    </label>
+  );
+}
+
+const pageStyle = {
+  minHeight: "100vh",
+  background: "#f5f7fa",
+  fontFamily: "Arial, sans-serif",
+  color: "#172033",
+};
+
+const headerStyle = {
+  background: "#172033",
+  color: "white",
+  padding: "18px 22px",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "15px",
+};
+
+const headerSubtitleStyle = {
+  margin: "6px 0 0",
+  opacity: 0.8,
+};
+
+const contentStyle = {
+  padding: "20px",
+  maxWidth: "1050px",
+  margin: "auto",
+};
+
+const welcomeRowStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "15px",
+  flexWrap: "wrap",
+};
+
+const summaryGridStyle = {
+  display: "grid",
+  gridTemplateColumns:
+    "repeat(auto-fit, minmax(140px, 1fr))",
+  gap: "12px",
+  marginTop: "20px",
+};
+
+const summaryBoxStyle = {
+  background: "white",
+  padding: "15px",
+  borderRadius: "12px",
+  boxShadow:
+    "0 2px 8px rgba(0,0,0,0.06)",
+  display: "flex",
+  flexDirection: "column",
+  gap: "4px",
+};
+
+const sectionStyle = {
+  marginTop: "25px",
+  background: "white",
+  padding: "20px",
+  borderRadius: "12px",
+  boxShadow:
+    "0 2px 8px rgba(0,0,0,0.08)",
+};
+
+const sectionTitleStyle = {
+  marginTop: 0,
+};
+
+const daySectionStyle = {
+  marginTop: "14px",
+  border:
+    "1px solid #e5e7eb",
+  borderRadius: "10px",
+  overflow: "hidden",
+};
+
+const daySummaryStyle = {
+  padding: "14px",
+  fontWeight: "bold",
+  cursor: "pointer",
+  background: "#f8fafc",
+};
+
+const scheduleListStyle = {
+  padding: "0 14px",
+};
+
+const scheduleRowStyle = {
+  padding: "12px 0",
+  borderBottom:
+    "1px solid #e5e7eb",
+};
+
+const scheduleMainStyle = {
+  display: "grid",
+  gridTemplateColumns:
+    "90px minmax(130px, 1fr) 120px 120px 130px minmax(140px, 1fr)",
+  gap: "8px",
+  alignItems: "center",
+  overflowX: "auto",
+  fontSize: "14px",
+};
+
+const scheduleActionsStyle = {
+  display: "flex",
+  gap: "8px",
+  flexWrap: "wrap",
+  marginTop: "8px",
+};
+
+const rideCardStyle = {
+  padding: "16px 0",
+  borderBottom:
+    "1px solid #e5e7eb",
+  lineHeight: 1.7,
+};
+
+const rideCardHeaderStyle = {
+  display: "flex",
+  justifyContent:
+    "space-between",
+  alignItems: "center",
+  gap: "10px",
+  flexWrap: "wrap",
+};
+
+const actionRowStyle = {
+  display: "flex",
+  gap: "8px",
+  flexWrap: "wrap",
+  marginTop: "10px",
+};
+
+const messageButtonRowStyle = {
+  display: "flex",
+  gap: "8px",
+  flexWrap: "wrap",
+  marginTop: "10px",
+};
+
+const bookingTotalStyle = {
+  fontWeight: "bold",
+  marginTop: "5px",
+};
+
+const formCardStyle = {
+  background: "white",
+  padding: "20px",
+  marginTop: "25px",
+  borderRadius: "12px",
+  boxShadow:
+    "0 2px 8px rgba(0,0,0,0.08)",
+};
+
+const formHeaderStyle = {
+  display: "flex",
+  justifyContent:
+    "space-between",
+  alignItems: "center",
+  gap: "10px",
+  marginBottom: "20px",
+};
+
+const formSectionTitleStyle = {
+  marginTop: "30px",
+};
+
+const gridStyle = {
+  display: "grid",
+  gridTemplateColumns:
+    "repeat(auto-fit, minmax(220px, 1fr))",
+  gap: "15px",
+};
+
+const fieldStyle = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "7px",
+};
+
+const inputStyle = {
+  padding: "12px",
+  borderRadius: "8px",
+  border:
+    "1px solid #cbd5e1",
+  fontSize: "16px",
+  background: "white",
+};
+
+const buttonStyle = {
+  width: "100%",
+  padding: "16px",
+  marginTop: "20px",
+  background: "#172033",
+  color: "white",
+  border: "none",
+  borderRadius: "10px",
+  fontSize: "16px",
+  fontWeight: "bold",
+  cursor: "pointer",
+};
+
+const newRideButtonStyle = {
+  padding: "12px 18px",
+  background: "#172033",
+  color: "white",
+  border: "none",
+  borderRadius: "10px",
+  fontSize: "15px",
+  fontWeight: "bold",
+  cursor: "pointer",
+};
+
+const saveButtonStyle = {
+  padding: "14px 18px",
+  background: "#1f7a4d",
+  color: "white",
+  border: "none",
+  borderRadius: "10px",
+  fontSize: "16px",
+  fontWeight: "bold",
+  cursor: "pointer",
+  flex: 1,
+};
+
+const cancelButtonStyle = {
+  padding: "14px 18px",
+  background: "white",
+  color: "#172033",
+  border:
+    "1px solid #cbd5e1",
+  borderRadius: "10px",
+  fontSize: "16px",
+  fontWeight: "bold",
+  cursor: "pointer",
+};
+
+const formActionRowStyle = {
+  display: "flex",
+  gap: "10px",
+  marginTop: "20px",
+};
+
+const statusButtonStyle = {
+  padding: "10px 12px",
+  borderRadius: "8px",
+  border:
+    "1px solid #cbd5e1",
+  background: "white",
+  fontSize: "14px",
+  fontWeight: "bold",
+  cursor: "pointer",
+};
+
+const textMessageButtonStyle = {
+  padding: "10px 12px",
+  borderRadius: "8px",
+  border:
+    "1px solid #94a3b8",
+  background: "#f8fafc",
+  fontSize: "14px",
+  fontWeight: "bold",
+  cursor: "pointer",
+};
+
+const smallActionButtonStyle = {
+  padding: "7px 10px",
+  borderRadius: "7px",
+  border:
+    "1px solid #cbd5e1",
+  background: "white",
+  fontSize: "13px",
+  fontWeight: "bold",
+  cursor: "pointer",
+};
+
+const closeButtonStyle = {
+  border: "none",
+  background: "transparent",
+  fontSize: "22px",
+  cursor: "pointer",
+};
+
+const logoutButtonStyle = {
+  padding: "8px 12px",
+  borderRadius: "8px",
+  border:
+    "1px solid rgba(255,255,255,0.35)",
+  background: "transparent",
+  color: "white",
+  cursor: "pointer",
+};
+
+const messageStyle = {
+  marginTop: "20px",
+  padding: "15px",
+  background: "white",
+  borderRadius: "10px",
+  border:
+    "1px solid #cbd5e1",
+};
+
+const mutedTextStyle = {
+  color: "#667085",
+};
