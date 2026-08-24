@@ -28,7 +28,7 @@ const emptyForm = {
 
 export default function Home() {
   const [showForm, setShowForm] = useState(false);
-
+const [editingRideId, setEditingRideId] = useState(null);
   const [pricingType, setPricingType] = useState("per_person");
   const [returnPricingType, setReturnPricingType] =
     useState("per_person");
@@ -183,9 +183,22 @@ await loadRides();
   cancelled: false,
 };
 
-    const { error } = await supabase
+ let error;
+
+    if (editingRideId) {
+      const result = await supabase
+      .from("Bookings")
+      .update(booking)
+      .eq("id", editingRideId);
+
+      error = result.error;
+    } else {
+      const result = await supabase
       .from("Bookings")
       .insert([booking]);
+
+      error = result.error;
+    }
 
     if (error) {
       console.error(error);
@@ -195,6 +208,7 @@ await loadRides();
     }
 
     setMessage("Ride saved successfully! 🚗✅");
+    setEditingRideId(null);
 await loadRides();
     
     setFormData(emptyForm);
@@ -388,6 +402,42 @@ await loadRides();
                   <div>
                     {ride.return_requested ? "🔁 Return" : "—"}
                   </div>
+                    <div>
+  <button
+    type="button"
+    onClick={() => {
+      setEditingRideId(ride.id);
+      
+      setFormData({
+        client_name: ride.client_name || "",
+        phone: ride.phone || "",
+        group_size: ride.group_size || "",
+        event_date: ride.event_date || "",
+        pickup_time: ride.pickup_time || "",
+        pickup_location: ride.pickup_location || "",
+        driver: ride.to_driver || "",
+        to_price: ride.to_price || "",
+        to_paid: ride.to_paid || false,
+        return_requested: ride.return_requested || false,
+        return_location: ride.return_location || "",
+        return_driver: ride.return_driver || "",
+        return_price: ride.return_price || "",
+        return_paid: ride.return_paid || false,
+        notes: ride.notes || "",
+      });
+
+      setPricingType(ride.to_price_type || "per_person");
+      setReturnPricingType(
+        ride.return_price_type || "per_person"
+      );
+
+      setShowForm(true);
+    }}
+    style={statusButtonStyle}
+  >
+    ✏️ Edit
+  </button>
+</div>
                 </div>
               );
             })}
@@ -1097,6 +1147,8 @@ await loadRides();
                 >
                   {saving
                     ? "Saving..."
+                    : editingRideId
+? "Update Booking"
                     : "Save Ride"}
                 </button>
               </div>
