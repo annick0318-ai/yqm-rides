@@ -102,7 +102,6 @@ export default function Home() {
 
   async function handleLogout() {
     await supabase.auth.signOut();
-
     setLoggedIn(false);
     setRides([]);
     setMessage("");
@@ -117,19 +116,14 @@ export default function Home() {
   }
 
   function openNewRide() {
-    setEditingRideId(null);
-    setFormData(emptyForm);
-    setPricingType("per_person");
-    setReturnPricingType("per_person");
+    resetForm();
     setShowForm(true);
 
     setTimeout(() => {
-      document
-        .getElementById("booking-form")
-        ?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
+      document.getElementById("booking-form")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
     }, 100);
   }
 
@@ -162,12 +156,10 @@ export default function Home() {
     setShowForm(true);
 
     setTimeout(() => {
-      document
-        .getElementById("booking-form")
-        ?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
+      document.getElementById("booking-form")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
     }, 100);
   }
 
@@ -178,18 +170,14 @@ export default function Home() {
 
   function openTextMessage(phone, text) {
     if (!phone) {
-      setMessage(
-        "No phone number is saved for this client."
-      );
+      setMessage("No phone number is saved for this client.");
       return;
     }
 
     const cleanPhone = phone.replace(/[^\d+]/g, "");
 
     if (!cleanPhone) {
-      setMessage(
-        "This client does not have a valid phone number."
-      );
+      setMessage("This client does not have a valid phone number.");
       return;
     }
 
@@ -249,9 +237,7 @@ export default function Home() {
 
   async function handleSaveRide() {
     if (!formData.client_name.trim()) {
-      setMessage(
-        "Please enter the client / group name."
-      );
+      setMessage("Please enter the client / group name.");
       return;
     }
 
@@ -360,15 +346,11 @@ export default function Home() {
     );
 
     await loadRides();
-
     resetForm();
     setSaving(false);
   }
 
-  async function updateRideStatus(
-    rideId,
-    newStatus
-  ) {
+  async function updateRideStatus(rideId, newStatus) {
     const { error } = await supabase
       .from("Bookings")
       .update({ to_status: newStatus })
@@ -420,6 +402,39 @@ export default function Home() {
       );
       return;
     }
+
+    await loadRides();
+  }
+
+  async function deleteRide(ride) {
+    const confirmed = window.confirm(
+      `Permanently delete ${ride.client_name}'s booking?\n\nThis cannot be undone.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    const { error } = await supabase
+      .from("Bookings")
+      .delete()
+      .eq("id", ride.id);
+
+    if (error) {
+      setMessage(
+        "Could not delete booking: " +
+          error.message
+      );
+      return;
+    }
+
+    if (editingRideId === ride.id) {
+      resetForm();
+    }
+
+    setMessage(
+      `${ride.client_name}'s booking was deleted permanently.`
+    );
 
     await loadRides();
   }
@@ -833,6 +848,18 @@ export default function Home() {
                                   {ride.cancelled
                                     ? "↩ Restore"
                                     : "🚫 Cancel"}
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    deleteRide(ride)
+                                  }
+                                  style={
+                                    deleteButtonStyle
+                                  }
+                                >
+                                  🗑️ Delete
                                 </button>
                               </div>
                             </div>
@@ -2000,6 +2027,18 @@ const smallActionButtonStyle = {
   border:
     "1px solid #cbd5e1",
   background: "white",
+  fontSize: "13px",
+  fontWeight: "bold",
+  cursor: "pointer",
+};
+
+const deleteButtonStyle = {
+  padding: "7px 10px",
+  borderRadius: "7px",
+  border:
+    "1px solid #ef4444",
+  background: "white",
+  color: "#b91c1c",
   fontSize: "13px",
   fontWeight: "bold",
   cursor: "pointer",
