@@ -8,6 +8,8 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+const DRIVER_OPTIONS = ["Annick", "Partner"];
+
 const emptyForm = {
   client_name: "",
   phone: "",
@@ -28,7 +30,8 @@ const emptyForm = {
 
 export default function Home() {
   const [showForm, setShowForm] = useState(false);
-const [editingRideId, setEditingRideId] = useState(null);
+  const [editingRideId, setEditingRideId] = useState(null);
+
   const [pricingType, setPricingType] = useState("per_person");
   const [returnPricingType, setReturnPricingType] =
     useState("per_person");
@@ -39,70 +42,46 @@ const [editingRideId, setEditingRideId] = useState(null);
   const [password, setPassword] = useState("");
   const [loggedIn, setLoggedIn] = useState(false);
 
+  const [rides, setRides] = useState([]);
+  const [loadingRides, setLoadingRides] = useState(false);
+
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
-const [rides, setRides] = useState([]);
-const [loadingRides, setLoadingRides] = useState(false);
-useEffect(() => {
-  async function restoreSession() {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
 
-    if (session) {
-      setLoggedIn(true);
-      await loadRides();
+  useEffect(() => {
+    async function restoreSession() {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (session) {
+        setLoggedIn(true);
+        await loadRides();
+      }
     }
-  }
 
-  restoreSession();
-}, []);
-  
+    restoreSession();
+  }, []);
+
   async function loadRides() {
-  setLoadingRides(true);
+    setLoadingRides(true);
 
-  const { data, error } = await supabase
-    .from("Bookings")
-    .select("*")
-    .order("event_date", { ascending: true })
-    .order("pickup_time", { ascending: true });
+    const { data, error } = await supabase
+      .from("Bookings")
+      .select("*")
+      .order("event_date", { ascending: true })
+      .order("pickup_time", { ascending: true });
 
-  if (error) {
-    console.error(error);
-    setMessage("Could not load rides: " + error.message);
+    if (error) {
+      setMessage("Could not load rides: " + error.message);
+      setLoadingRides(false);
+      return;
+    }
+
+    setRides(data || []);
     setLoadingRides(false);
-    return;
   }
 
-  setRides(data || []);
-  setLoadingRides(false);
-}
-  async function updateRideStatus(rideId, newStatus) {
-  const { error } = await supabase
-    .from("Bookings")
-    .update({ to_status: newStatus })
-    .eq("id", rideId);
-
-  if (error) {
-    setMessage("Could not update status: " + error.message);
-    return;
-  }
-    await loadRides();
-  }
-
-    async function updateReturnStatus(rideId, newStatus) {
-  const { error } = await supabase
-    .from("Bookings")
-    .update({ return_status: newStatus })
-    .eq("id", rideId);
-
-  if (error) {
-    setMessage("Could not update return status: " + error.message);
-    return;
-  }
-
-  await loadRides();
-}
   async function handleLogin() {
     setMessage("Signing in...");
 
@@ -117,12 +96,78 @@ useEffect(() => {
     }
 
     setLoggedIn(true);
-    setMessage("Signed in successfully ✅");
-await loadRides();
+    setMessage("");
+    await loadRides();
+  }
+
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    setLoggedIn(false);
+    setRides([]);
+    setMessage("");
+  }
+
+  function resetForm() {
+    setEditingRideId(null);
+    setFormData(emptyForm);
+    setPricingType("per_person");
+    setReturnPricingType("per_person");
+    setShowForm(false);
+  }
+
+  function openNewRide() {
+    setEditingRideId(null);
+    setFormData(emptyForm);
+    setPricingType("per_person");
+    setReturnPricingType("per_person");
+    setShowForm(true);
+
+    window.scrollTo({
+      top: document.body.scrollHeight,
+      behavior: "smooth",
+    });
+  }
+
+  function openEditRide(ride) {
+    setEditingRideId(ride.id);
+
+    setFormData({
+      client_name: ride.client_name || "",
+      phone: ride.phone || "",
+      group_size: ride.group_size || "",
+      event_date: ride.event_date || "",
+      pickup_time: ride.pickup_time || "",
+      pickup_location: ride.pickup_location || "",
+      driver: ride.to_driver || "",
+      to_price: ride.to_price ?? "",
+      to_paid: Boolean(ride.to_paid),
+      return_requested: Boolean(ride.return_requested),
+      return_location: ride.return_location || "",
+      return_driver: ride.return_driver || "",
+      return_price: ride.return_price ?? "",
+      return_paid: Boolean(ride.return_paid),
+      notes: ride.notes || "",
+    });
+
+    setPricingType(ride.to_price_type || "per_person");
+    setReturnPricingType(
+      ride.return_price_type || "per_person"
+    );
+
+    setShowForm(true);
+
+    setTimeout(() => {
+      document
+        .getElementById("booking-form")
+        ?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+    }, 100);
   }
 
   async function handleSaveRide() {
-    if (!formData.client_name) {
+    if (!formData.client_name.trim()) {
       setMessage("Please enter the client / group name.");
       return;
     }
@@ -138,122 +183,253 @@ await loadRides();
     }
 
     setSaving(true);
-    setMessage("Saving ride...");
+    setMessage(
+      editingRideId
+        ? "Updating booking..."
+        : "Saving ride..."
+    );
 
     const booking = {
-  client_name: formData.client_name,
-  phone: formData.phone || null,
-  group_size: Number(formData.group_size),
-  event_date: formData.event_date,
-  pickup_time: formData.pickup_time || null,
-  pickup_location: formData.pickup_location || null,
+      client_name: formData.client_name.trim(),
+      phone: formData.phone || null,
+      group_size: Number(formData.group_size),
+      event_date: formData.event_date,
+      pickup_time: formData.pickup_time || null,
+      pickup_location: formData.pickup_location || null,
 
-  to_driver: formData.driver || null,
-  to_price_type: pricingType,
-  to_price:
-    formData.to_price === ""
-      ? null
-      : Number(formData.to_price),
-  to_paid: formData.to_paid,
+      to_driver: formData.driver || null,
+      to_price_type: pricingType,
+      to_price:
+        formData.to_price === ""
+          ? null
+          : Number(formData.to_price),
+      to_paid: formData.to_paid,
 
-  return_requested: formData.return_requested,
-  return_location: formData.return_requested
-    ? formData.return_location || null
-    : null,
-  return_driver: formData.return_requested
-    ? formData.return_driver || null
-    : null,
-  return_price_type: formData.return_requested
-    ? returnPricingType
-    : null,
-  return_price:
-    formData.return_requested && formData.return_price !== ""
-      ? Number(formData.return_price)
-      : null,
-  return_paid: formData.return_requested
-    ? formData.return_paid
-    : false,
+      return_requested: formData.return_requested,
+      return_location: formData.return_requested
+        ? formData.return_location || null
+        : null,
+      return_driver: formData.return_requested
+        ? formData.return_driver || null
+        : null,
+      return_price_type: formData.return_requested
+        ? returnPricingType
+        : null,
+      return_price:
+        formData.return_requested &&
+        formData.return_price !== ""
+          ? Number(formData.return_price)
+          : null,
+      return_paid: formData.return_requested
+        ? formData.return_paid
+        : false,
 
-  notes: formData.notes || null,
+      notes: formData.notes || null,
+      event_name: "YQM Country Fest",
+    };
 
-  event_name: "YQM Country Fest",
-  to_status: "upcoming",
-  return_status: formData.return_requested ? "waiting" : null,
-  return_queue_position: null,
-  cancelled: false,
-};
-
- let error;
+    let error;
 
     if (editingRideId) {
       const result = await supabase
-      .from("Bookings")
-      .update(booking)
-      .eq("id", editingRideId);
+        .from("Bookings")
+        .update(booking)
+        .eq("id", editingRideId);
 
       error = result.error;
     } else {
       const result = await supabase
-      .from("Bookings")
-      .insert([booking]);
+        .from("Bookings")
+        .insert([
+          {
+            ...booking,
+            to_status: "upcoming",
+            return_status: formData.return_requested
+              ? "waiting"
+              : null,
+            return_queue_position: null,
+            cancelled: false,
+          },
+        ]);
 
       error = result.error;
     }
 
     if (error) {
-      console.error(error);
       setMessage("Could not save ride: " + error.message);
       setSaving(false);
       return;
     }
 
-    setMessage("Ride saved successfully! 🚗✅");
-    setEditingRideId(null);
-await loadRides();
-    
-    setFormData(emptyForm);
-    setPricingType("per_person");
-    setReturnPricingType("per_person");
+    setMessage(
+      editingRideId
+        ? "Booking updated successfully! ✅"
+        : "Ride saved successfully! 🚗✅"
+    );
 
+    await loadRides();
+    resetForm();
     setSaving(false);
-    setShowForm(false);
   }
 
-  return (
-    <main
-      style={{
-        minHeight: "100vh",
-        background: "#f5f7fa",
-        fontFamily: "Arial, sans-serif",
-        color: "#172033",
-      }}
-    >
-      <header
-        style={{
-          background: "#172033",
-          color: "white",
-          padding: "22px",
-        }}
-      >
-        <h1 style={{ margin: 0 }}>YQM Rides</h1>
+  async function updateRideStatus(rideId, newStatus) {
+    const { error } = await supabase
+      .from("Bookings")
+      .update({ to_status: newStatus })
+      .eq("id", rideId);
 
-        <p
-          style={{
-            margin: "6px 0 0",
-            opacity: 0.8,
-          }}
-        >
-          Ride Dispatch
-        </p>
+    if (error) {
+      setMessage(
+        "Could not update TO status: " + error.message
+      );
+      return;
+    }
+
+    await loadRides();
+  }
+
+  async function updateReturnStatus(rideId, newStatus) {
+    const { error } = await supabase
+      .from("Bookings")
+      .update({ return_status: newStatus })
+      .eq("id", rideId);
+
+    if (error) {
+      setMessage(
+        "Could not update return status: " +
+          error.message
+      );
+      return;
+    }
+
+    await loadRides();
+  }
+
+  async function toggleCancelled(ride) {
+    const { error } = await supabase
+      .from("Bookings")
+      .update({ cancelled: !ride.cancelled })
+      .eq("id", ride.id);
+
+    if (error) {
+      setMessage(
+        "Could not update booking: " + error.message
+      );
+      return;
+    }
+
+    await loadRides();
+  }
+
+  function getToTotal(ride) {
+    if (ride.to_price_type === "per_person") {
+      return (
+        Number(ride.to_price || 0) *
+        Number(ride.group_size || 0)
+      );
+    }
+
+    return Number(ride.to_price || 0);
+  }
+
+  function getReturnTotal(ride) {
+    if (!ride.return_requested) return 0;
+
+    if (ride.return_price_type === "per_person") {
+      return (
+        Number(ride.return_price || 0) *
+        Number(ride.group_size || 0)
+      );
+    }
+
+    return Number(ride.return_price || 0);
+  }
+
+  function formatTime(time) {
+    if (!time) return "No time";
+
+    const [hourString, minute] = time.split(":");
+    const hour = Number(hourString);
+
+    const suffix = hour >= 12 ? "PM" : "AM";
+    const normalHour = hour % 12 || 12;
+
+    return `${normalHour}:${minute} ${suffix}`;
+  }
+
+  function formatDate(date) {
+    if (!date) return "No date";
+
+    return new Date(
+      `${date}T12:00:00`
+    ).toLocaleDateString("en-CA", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+    });
+  }
+
+  function toStatusText(status) {
+    if (status === "on_my_way") return "On my way 🚗";
+    if (status === "picked_up") return "Picked up 👥";
+    if (status === "completed") return "Dropped off ✅";
+
+    return "Upcoming 🕐";
+  }
+
+  function returnStatusText(status) {
+    if (status === "on_my_way") return "On my way 🚗";
+    if (status === "picked_up") return "Picked up 👥";
+    if (status === "completed")
+      return "Returned home ✅";
+
+    return "Waiting ⏳";
+  }
+
+  const validRides = rides.filter(
+    (ride) => !ride.cancelled
+  );
+
+  const activeToRides = validRides.filter(
+    (ride) => ride.to_status !== "completed"
+  );
+
+  const returnQueue = validRides.filter(
+    (ride) =>
+      ride.return_requested &&
+      ride.return_status !== "completed"
+  );
+
+  const scheduleDates = [
+    ...new Set(
+      rides
+        .map((ride) => ride.event_date)
+        .filter(Boolean)
+    ),
+  ].sort();
+
+  return (
+    <main style={pageStyle}>
+      <header style={headerStyle}>
+        <div>
+          <h1 style={{ margin: 0 }}>YQM Rides</h1>
+          <p style={headerSubtitleStyle}>
+            Ride Dispatch
+          </p>
+        </div>
+
+        {loggedIn && (
+          <button
+            type="button"
+            onClick={handleLogout}
+            style={logoutButtonStyle}
+          >
+            Log out
+          </button>
+        )}
       </header>
 
-      <div
-        style={{
-          padding: "20px",
-          maxWidth: "900px",
-          margin: "auto",
-        }}
-      >
+      <div style={contentStyle}>
         {!loggedIn && (
           <div style={formCardStyle}>
             <h2 style={{ marginTop: 0 }}>
@@ -261,7 +437,8 @@ await loadRides();
             </h2>
 
             <p>
-              Sign in with one of the YQM Rides accounts.
+              Sign in with your YQM Rides driver
+              account.
             </p>
 
             <div style={gridStyle}>
@@ -300,458 +477,270 @@ await loadRides();
 
         {loggedIn && (
           <>
-            <h2>Welcome 👋</h2>
+            <div style={welcomeRowStyle}>
+              <div>
+                <h2 style={{ marginBottom: "4px" }}>
+                  Welcome 👋
+                </h2>
+                <p style={{ marginTop: 0 }}>
+                  Your shared ride schedule and
+                  dispatch board.
+                </p>
+              </div>
 
-            <p>
-              Manage your ride bookings from one place.
-            </p>
-<div
-  style={{
-    marginTop: "25px",
-    background: "white",
-    padding: "20px",
-    borderRadius: "12px",
-    boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-  }}
->
-  <h2 style={{ marginTop: 0 }}>📅 Full Schedule</h2>
+              <button
+                type="button"
+                onClick={openNewRide}
+                style={newRideButtonStyle}
+              >
+                + Add New Ride
+              </button>
+            </div>
 
-  {loadingRides && <p>Loading schedule...</p>}
-
-  {!loadingRides && rides.length === 0 && (
-    <p>No rides scheduled yet.</p>
-  )}
-
-  {!loadingRides &&
-    [...new Set(rides.map((ride) => ride.event_date))]
-      .filter(Boolean)
-      .sort()
-      .map((date) => {
-        const dayRides = rides
-          .filter((ride) => ride.event_date === date)
-          .sort((a, b) =>
-            (a.pickup_time || "").localeCompare(b.pickup_time || "")
-          );
-
-        return (
-          <div key={date} style={{ marginTop: "22px" }}>
-            <h3
-              style={{
-                marginBottom: "8px",
-                borderBottom: "2px solid #e5e7eb",
-                paddingBottom: "8px",
-              }}
-            >
-              {new Date(date + "T12:00:00").toLocaleDateString("en-CA", {
-                weekday: "long",
-                month: "long",
-                day: "numeric",
-              })}
-              {" — "}
-              {dayRides.length} booking{dayRides.length !== 1 ? "s" : ""}
-            </h3>
-
-            {dayRides.map((ride) => {
-              const toTotal =
-                ride.to_price_type === "per_person"
-                  ? Number(ride.to_price || 0) * Number(ride.group_size || 0)
-                  : Number(ride.to_price || 0);
-
-              return (
-                <div
-                  key={`schedule-${ride.id}`}
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns:
-                      "90px minmax(130px, 1.4fr) 70px minmax(110px, 1fr) 110px 110px 70px",
-                    gap: "8px",
-                    alignItems: "center",
-                    padding: "10px 0",
-                    borderBottom: "1px solid #e5e7eb",
-                    fontSize: "14px",
-                    overflowX: "auto",
-                  }}
-                >
-                  <div>
-                    <strong>{ride.pickup_time || "—"}</strong>
-                  </div>
-
-                  <div>
-                    <strong>{ride.client_name}</strong>
-                  </div>
-
-                  <div>👥 {ride.group_size}</div>
-
-                  <div>{ride.to_driver || "Unassigned"}</div>
-
-                  <div>
-                    ${toTotal.toFixed(2)}{" "}
-                    {ride.to_paid ? "✅" : "❌"}
-                  </div>
-
-                  <div>
-                    {ride.to_status === "completed"
-                      ? "Dropped off ✅"
-                      : ride.to_status === "picked_up"
-                      ? "Picked up 👥"
-                      : ride.to_status === "on_my_way"
-                      ? "On my way 🚗"
-                      : "Upcoming 🕐"}
-                  </div>
-
-                  <div>
-                    {ride.return_requested ? "🔁 Return" : "—"}
-                  </div>
-                    <div>
-  <button
-    type="button"
-    onClick={() => {
-      setEditingRideId(ride.id);
-      
-      setFormData({
-        client_name: ride.client_name || "",
-        phone: ride.phone || "",
-        group_size: ride.group_size || "",
-        event_date: ride.event_date || "",
-        pickup_time: ride.pickup_time || "",
-        pickup_location: ride.pickup_location || "",
-        driver: ride.to_driver || "",
-        to_price: ride.to_price || "",
-        to_paid: ride.to_paid || false,
-        return_requested: ride.return_requested || false,
-        return_location: ride.return_location || "",
-        return_driver: ride.return_driver || "",
-        return_price: ride.return_price || "",
-        return_paid: ride.return_paid || false,
-        notes: ride.notes || "",
-      });
-
-      setPricingType(ride.to_price_type || "per_person");
-      setReturnPricingType(
-        ride.return_price_type || "per_person"
-      );
-
-      setShowForm(true);
-    }}
-    style={statusButtonStyle}
-  >
-    ✏️ Edit
-  </button>
-</div>
-                </div>
-              );
-            })}
-          </div>
-        );
-      })}
-</div>
-          
-<div
-  style={{
-    marginTop: "25px",
-    background: "white",
-    padding: "20px",
-    borderRadius: "12px",
-    boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-  }}
->
-<h2 style={{ marginTop: 0 }}>Active TO Rides 🚗</h2>
-
-  {loadingRides && <p>Loading rides...</p>}
-
-  {!loadingRides && rides.length === 0 && (
-    <p>No rides saved yet.</p>
-  )}
-
-{!loadingRides &&
-  rides
-    .filter((ride) => ride.to_status !== "completed")
-    .map((ride) => (
-      <div
-        key={ride.id}
-        style={{
-          padding: "15px 0",
-          borderBottom: "1px solid #e5e7eb",
-        }}
-      >
-        <strong>{ride.client_name}</strong>
-
-        <div>
-          {ride.event_date} • {ride.pickup_time || "No time"}
-        </div>
-
-        <div>
-          👥 {ride.group_size} passengers
-        </div>
-
-        <div>
-          📍 {ride.pickup_location || "No pickup location"}
-        </div>
-
-        <div>
-          🚗 Driver: {ride.to_driver || "Not assigned"}
-        </div>
-<div style={{ marginTop: "6px" }}>
-  📋 Status:{" "}
-  <strong>
-    {ride.to_status === "upcoming"
-      ? "Upcoming 🕐"
-      : ride.to_status === "on_my_way"
-      ? "On my way 🚗"
-      : ride.to_status === "picked_up"
-      ? "Picked up 👥"
-      : ride.to_status === "completed"
-      ? "Dropped off ✅"
-      : ride.to_status || "Upcoming 🕐"}
-  </strong>
-</div>
- <div
-  style={{
-    display: "flex",
-    gap: "8px",
-    flexWrap: "wrap",
-    marginTop: "10px",
-  }}
->
-  {ride.to_status === "upcoming" && (
-    <button
-      type="button"
-      onClick={() => updateRideStatus(ride.id, "on_my_way")}
-      style={statusButtonStyle}
-    >
-      🚗 On my way
-    </button>
-  )}
-
-  {ride.to_status === "on_my_way" && (
-    <button
-      type="button"
-      onClick={() => updateRideStatus(ride.id, "picked_up")}
-      style={statusButtonStyle}
-    >
-      👥 Picked up
-    </button>
-  )}
-
-  {ride.to_status === "picked_up" && (
-    <button
-      type="button"
-      onClick={() => updateRideStatus(ride.id, "completed")}
-      style={statusButtonStyle}
-    >
-      ✅ Dropped off
-    </button>
-  )}
-</div>
-
-<div style={{ marginTop: "8px" }}>
-  💰 TO YQM:{" "}
-  <strong>
-    $
-    {ride.to_price_type === "per_person"
-      ? Number(ride.to_price || 0) * Number(ride.group_size || 0)
-      : Number(ride.to_price || 0)}
-  </strong>{" "}
-  — {ride.to_paid ? "Paid ✅" : "Unpaid ❌"}
-</div>
-
-{ride.return_requested && (
-  <div>
-    🔁 Return:{" "}
-    <strong>
-      $
-      {ride.return_price_type === "per_person"
-        ? Number(ride.return_price || 0) * Number(ride.group_size || 0)
-        : Number(ride.return_price || 0)}
-    </strong>{" "}
-    — {ride.return_paid ? "Paid ✅" : "Unpaid ❌"}
-  </div>
-)}
-
-<div style={{ fontWeight: "bold", marginTop: "4px" }}>
-  Booking Total: $
-  {(
-    (ride.to_price_type === "per_person"
-      ? Number(ride.to_price || 0) * Number(ride.group_size || 0)
-      : Number(ride.to_price || 0)) +
-    (ride.return_requested
-      ? ride.return_price_type === "per_person"
-        ? Number(ride.return_price || 0) * Number(ride.group_size || 0)
-        : Number(ride.return_price || 0)
-      : 0)
-  ).toFixed(2)}
-</div>
-      </div>
-    ))}
-</div>
-           <div
-  style={{
-    marginTop: "25px",
-    background: "white",
-    padding: "20px",
-    borderRadius: "12px",
-    boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-  }}
->
-  <h2 style={{ marginTop: 0 }}>Return Queue 🔁</h2>
-
-  {!loadingRides &&
-    rides.filter(
-      (ride) =>
-        ride.return_requested &&
-        ride.return_status !== "completed"
-    ).length === 0 && (
-      <p>No return rides waiting.</p>
-    )}
-
-  {!loadingRides &&
-    rides
-      .filter(
-        (ride) =>
-          ride.return_requested &&
-          ride.return_status !== "completed"
-      )
-      .map((ride) => (
-        <div
-          key={`return-${ride.id}`}
-          style={{
-            padding: "15px 0",
-            borderBottom: "1px solid #e5e7eb",
-          }}
-        >
-          <strong>{ride.client_name}</strong>
-
-          <div>👥 {ride.group_size} passengers</div>
-
-          <div>
-            📍 Return to:{" "}
-            {ride.return_location || "No return location"}
-          </div>
-
-          <div>
-            🚗 Return Driver:{" "}
-            {ride.return_driver || "Not assigned"}
-          </div>
-
-          <div>
-            📋 Return Status:{" "}
-            <strong>
-              {ride.return_status === "waiting"
-                ? "Waiting ⏳"
-                : ride.return_status === "on_my_way"
-                ? "On my way 🚗"
-                : ride.return_status === "picked_up"
-                ? "Picked up 👥"
-                : ride.return_status === "completed"
-                ? "Returned home ✅"
-                : ride.return_status || "Waiting ⏳"}
-            </strong>
-          </div>
-<div
-  style={{
-    display: "flex",
-    gap: "8px",
-    flexWrap: "wrap",
-    marginTop: "10px",
-  }}
->
-  {(ride.return_status === "waiting" || !ride.return_status) && (
-    <button
-      type="button"
-      onClick={() => updateReturnStatus(ride.id, "on_my_way")}
-      style={statusButtonStyle}
-    >
-      🚗 On my way
-    </button>
-  )}
-
-  {ride.return_status === "on_my_way" && (
-    <button
-      type="button"
-      onClick={() => updateReturnStatus(ride.id, "picked_up")}
-      style={statusButtonStyle}
-    >
-      👥 Picked up
-    </button>
-  )}
-
-  {ride.return_status === "picked_up" && (
-    <button
-      type="button"
-      onClick={() => updateReturnStatus(ride.id, "completed")}
-      style={statusButtonStyle}
-    >
-      ✅ Returned home
-    </button>
-  )}
-</div>
-          <div>
-            💰 Return:{" "}
-            <strong>
-              $
-              {ride.return_price_type === "per_person"
-                ? Number(ride.return_price || 0) *
-                  Number(ride.group_size || 0)
-                : Number(ride.return_price || 0)}
-            </strong>{" "}
-            — {ride.return_paid ? "Paid ✅" : "Unpaid ❌"}
-          </div>
-        </div>
-      ))}
-</div>
-            <div
-  style={{
-    marginTop: "25px",
-    background: "white",
-                display: "grid",
-                gridTemplateColumns:
-                  "repeat(auto-fit, minmax(180px, 1fr))",
-                gap: "15px",
-                marginTop: "25px",
-              }}
-            >
-              <Card
+            <div style={summaryGridStyle}>
+              <SummaryBox
+                value={activeToRides.length}
+                label="Active TO"
                 icon="🚗"
-                title="Rides"
-                text="View upcoming rides"
               />
 
-              <Card
-                icon="👥"
-                title="Passengers"
-                text="Manage passengers"
+              <SummaryBox
+                value={returnQueue.length}
+                label="Return Queue"
+                icon="🔁"
               />
 
-              <Card
-                icon="💵"
-                title="Payments"
-                text="Paid & unpaid rides"
+              <SummaryBox
+                value={validRides.length}
+                label="Bookings"
+                icon="📅"
               />
 
-              <Card
-                icon="📍"
-                title="Dispatch"
-                text="Pickup information"
+              <SummaryBox
+                value={`$${validRides
+                  .reduce(
+                    (sum, ride) =>
+                      sum +
+                      getToTotal(ride) +
+                      getReturnTotal(ride),
+                    0
+                  )
+                  .toFixed(2)}`}
+                label="Expected"
+                icon="💰"
               />
             </div>
 
-            <button
-              type="button"
-              onClick={() =>
-                setShowForm(!showForm)
-              }
-              style={buttonStyle}
-            >
-              {showForm
-                ? "Close Form"
-                : "+ Add New Ride"}
-            </button>
+            <section style={sectionStyle}>
+              <h2 style={sectionTitleStyle}>
+                📅 Full Schedule
+              </h2>
+
+              {loadingRides && (
+                <p>Loading schedule...</p>
+              )}
+
+              {!loadingRides &&
+                scheduleDates.length === 0 && (
+                  <p>No rides scheduled yet.</p>
+                )}
+
+              {!loadingRides &&
+                scheduleDates.map((date) => {
+                  const dayRides = rides
+                    .filter(
+                      (ride) =>
+                        ride.event_date === date
+                    )
+                    .sort((a, b) =>
+                      (a.pickup_time || "").localeCompare(
+                        b.pickup_time || ""
+                      )
+                    );
+
+                  return (
+                    <details
+                      key={date}
+                      open
+                      style={daySectionStyle}
+                    >
+                      <summary
+                        style={daySummaryStyle}
+                      >
+                        {formatDate(date)} —{" "}
+                        {dayRides.length} booking
+                        {dayRides.length !== 1
+                          ? "s"
+                          : ""}
+                      </summary>
+
+                      <div style={scheduleListStyle}>
+                        {dayRides.map((ride) => (
+                          <div
+                            key={`schedule-${ride.id}`}
+                            style={{
+                              ...scheduleRowStyle,
+                              opacity: ride.cancelled
+                                ? 0.55
+                                : 1,
+                            }}
+                          >
+                            <div style={scheduleMainStyle}>
+                              <div>
+                                <strong>
+                                  {formatTime(
+                                    ride.pickup_time
+                                  )}
+                                </strong>
+                              </div>
+
+                              <div>
+                                <strong>
+                                  {ride.client_name}
+                                </strong>{" "}
+                                <span
+                                  style={mutedTextStyle}
+                                >
+                                  × {ride.group_size}
+                                </span>
+                              </div>
+
+                              <div>
+                                🚗{" "}
+                                {ride.to_driver ||
+                                  "Unassigned"}
+                              </div>
+
+                              <div>
+                                💰 $
+                                {getToTotal(
+                                  ride
+                                ).toFixed(2)}{" "}
+                                {ride.to_paid
+                                  ? "✅"
+                                  : "❌"}
+                              </div>
+
+                              <div>
+                                {ride.cancelled
+                                  ? "🚫 Cancelled"
+                                  : toStatusText(
+                                      ride.to_status
+                                    )}
+                              </div>
+
+                              <div>
+                                {ride.return_requested
+                                  ? "🔁 Return"
+                                  : "—"}
+                              </div>
+                            </div>
+
+                            <div
+                              style={scheduleActionsStyle}
+                            >
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  openEditRide(ride)
+                                }
+                                style={
+                                  smallActionButtonStyle
+                                }
+                              >
+                                ✏️ Edit
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  toggleCancelled(ride)
+                                }
+                                style={
+                                  smallActionButtonStyle
+                                }
+                              >
+                                {ride.cancelled
+                                  ? "↩ Restore"
+                                  : "🚫 Cancel"}
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  );
+                })}
+            </section>
+
+            <section style={sectionStyle}>
+              <h2 style={sectionTitleStyle}>
+                🚗 Active TO Rides
+              </h2>
+
+              {activeToRides.length === 0 && (
+                <p>No active TO rides.</p>
+              )}
+
+              {activeToRides.map((ride) => (
+                <RideCard
+                  key={ride.id}
+                  ride={ride}
+                  getToTotal={getToTotal}
+                  getReturnTotal={getReturnTotal}
+                  formatTime={formatTime}
+                  toStatusText={toStatusText}
+                  updateRideStatus={updateRideStatus}
+                  openEditRide={openEditRide}
+                />
+              ))}
+            </section>
+
+            <section style={sectionStyle}>
+              <h2 style={sectionTitleStyle}>
+                🔁 Return Queue
+              </h2>
+
+              {returnQueue.length === 0 && (
+                <p>No return rides waiting.</p>
+              )}
+
+              {returnQueue.map((ride) => (
+                <ReturnCard
+                  key={`return-${ride.id}`}
+                  ride={ride}
+                  getReturnTotal={getReturnTotal}
+                  returnStatusText={
+                    returnStatusText
+                  }
+                  updateReturnStatus={
+                    updateReturnStatus
+                  }
+                  openEditRide={openEditRide}
+                />
+              ))}
+            </section>
 
             {showForm && (
-              <div style={formCardStyle}>
-                <h2 style={{ marginTop: 0 }}>
-                  New Ride
-                </h2>
+              <section
+                id="booking-form"
+                style={formCardStyle}
+              >
+                <div style={formHeaderStyle}>
+                  <h2 style={{ margin: 0 }}>
+                    {editingRideId
+                      ? "✏️ Edit Booking"
+                      : "➕ New Ride"}
+                  </h2>
+
+                  <button
+                    type="button"
+                    onClick={resetForm}
+                    style={closeButtonStyle}
+                  >
+                    ✕
+                  </button>
+                </div>
 
                 <div style={gridStyle}>
                   <Field label="Client / Group Name">
@@ -846,7 +835,7 @@ await loadRides();
                     />
                   </Field>
 
-                  <Field label="Driver">
+                  <Field label="TO Driver">
                     <select
                       style={inputStyle}
                       value={formData.driver}
@@ -861,22 +850,21 @@ await loadRides();
                         Select driver
                       </option>
 
-                      <option value="Annick">
-                        Annick
-                      </option>
-
-                      <option value="Partner">
-                        Partner
-                      </option>
+                      {DRIVER_OPTIONS.map(
+                        (driver) => (
+                          <option
+                            key={driver}
+                            value={driver}
+                          >
+                            {driver}
+                          </option>
+                        )
+                      )}
                     </select>
                   </Field>
                 </div>
 
-                <h3
-                  style={{
-                    marginTop: "30px",
-                  }}
-                >
+                <h3 style={formSectionTitleStyle}>
                   🚗 Ride TO Event
                 </h3>
 
@@ -894,7 +882,6 @@ await loadRides();
                       <option value="per_person">
                         Per person
                       </option>
-
                       <option value="flat">
                         Flat group price
                       </option>
@@ -903,8 +890,7 @@ await loadRides();
 
                   <Field
                     label={
-                      pricingType ===
-                      "per_person"
+                      pricingType === "per_person"
                         ? "Price Per Person"
                         : "Flat Group Price"
                     }
@@ -945,7 +931,6 @@ await loadRides();
                       <option value="unpaid">
                         Unpaid
                       </option>
-
                       <option value="paid">
                         Paid
                       </option>
@@ -953,11 +938,7 @@ await loadRides();
                   </Field>
                 </div>
 
-                <h3
-                  style={{
-                    marginTop: "30px",
-                  }}
-                >
+                <h3 style={formSectionTitleStyle}>
                   🔁 Return Ride
                 </h3>
 
@@ -982,7 +963,6 @@ await loadRides();
                       <option value="no">
                         No
                       </option>
-
                       <option value="yes">
                         Yes
                       </option>
@@ -1026,13 +1006,16 @@ await loadRides();
                             Select driver
                           </option>
 
-                          <option value="Annick">
-                            Annick
-                          </option>
-
-                          <option value="Partner">
-                            Partner
-                          </option>
+                          {DRIVER_OPTIONS.map(
+                            (driver) => (
+                              <option
+                                key={`return-${driver}`}
+                                value={driver}
+                              >
+                                {driver}
+                              </option>
+                            )
+                          )}
                         </select>
                       </Field>
 
@@ -1051,7 +1034,6 @@ await loadRides();
                           <option value="per_person">
                             Per person
                           </option>
-
                           <option value="flat">
                             Flat group price
                           </option>
@@ -1104,7 +1086,6 @@ await loadRides();
                           <option value="unpaid">
                             Unpaid
                           </option>
-
                           <option value="paid">
                             Paid
                           </option>
@@ -1114,11 +1095,7 @@ await loadRides();
                   )}
                 </div>
 
-                <div
-                  style={{
-                    marginTop: "20px",
-                  }}
-                >
+                <div style={{ marginTop: "20px" }}>
                   <Field label="Notes">
                     <textarea
                       style={{
@@ -1136,92 +1113,461 @@ await loadRides();
                   </Field>
                 </div>
 
-                <button
-                  type="button"
-                  style={{
-                    ...saveButtonStyle,
-                    opacity: saving ? 0.6 : 1,
-                  }}
-                  onClick={handleSaveRide}
-                  disabled={saving}
-                >
-                  {saving
-                    ? "Saving..."
-                    : editingRideId
-? "Update Booking"
-                    : "Save Ride"}
-                </button>
-              </div>
+                <div style={formActionRowStyle}>
+                  <button
+                    type="button"
+                    onClick={resetForm}
+                    style={cancelButtonStyle}
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleSaveRide}
+                    disabled={saving}
+                    style={{
+                      ...saveButtonStyle,
+                      opacity: saving ? 0.6 : 1,
+                    }}
+                  >
+                    {saving
+                      ? "Saving..."
+                      : editingRideId
+                      ? "Update Booking"
+                      : "Save Ride"}
+                  </button>
+                </div>
+              </section>
             )}
           </>
         )}
 
         {message && (
-          <div
-            style={{
-              marginTop: "20px",
-              padding: "15px",
-              background: "white",
-              borderRadius: "10px",
-              border:
-                "1px solid #cbd5e1",
-            }}
-          >
-            {message}
-          </div>
+          <div style={messageStyle}>{message}</div>
         )}
       </div>
     </main>
   );
 }
 
-function Card({ icon, title, text }) {
+function RideCard({
+  ride,
+  getToTotal,
+  getReturnTotal,
+  formatTime,
+  toStatusText,
+  updateRideStatus,
+  openEditRide,
+}) {
   return (
-    <div
-      style={{
-        background: "white",
-        padding: "20px",
-        borderRadius: "12px",
-        boxShadow:
-          "0 2px 8px rgba(0,0,0,0.08)",
-      }}
-    >
-      <div style={{ fontSize: "28px" }}>
-        {icon}
+    <div style={rideCardStyle}>
+      <div style={rideCardHeaderStyle}>
+        <div>
+          <strong>{ride.client_name}</strong>
+          <span style={mutedTextStyle}>
+            {" "}
+            · {ride.group_size} passengers
+          </span>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => openEditRide(ride)}
+          style={smallActionButtonStyle}
+        >
+          ✏️ Edit
+        </button>
       </div>
 
-      <h3>{title}</h3>
+      <div>
+        🕐 {formatTime(ride.pickup_time)}
+      </div>
 
-      <p style={{ color: "#667085" }}>
-        {text}
-      </p>
+      <div>
+        📍 {ride.pickup_location || "No pickup location"}
+      </div>
+
+      <div>
+        🚗 Driver: {ride.to_driver || "Not assigned"}
+      </div>
+
+      <div>
+        📋 Status:{" "}
+        <strong>{toStatusText(ride.to_status)}</strong>
+      </div>
+
+      <div style={actionRowStyle}>
+        {(!ride.to_status ||
+          ride.to_status === "upcoming") && (
+          <button
+            type="button"
+            onClick={() =>
+              updateRideStatus(
+                ride.id,
+                "on_my_way"
+              )
+            }
+            style={statusButtonStyle}
+          >
+            🚗 On my way
+          </button>
+        )}
+
+        {ride.to_status === "on_my_way" && (
+          <button
+            type="button"
+            onClick={() =>
+              updateRideStatus(
+                ride.id,
+                "picked_up"
+              )
+            }
+            style={statusButtonStyle}
+          >
+            👥 Picked up
+          </button>
+        )}
+
+        {ride.to_status === "picked_up" && (
+          <button
+            type="button"
+            onClick={() =>
+              updateRideStatus(
+                ride.id,
+                "completed"
+              )
+            }
+            style={statusButtonStyle}
+          >
+            ✅ Dropped off
+          </button>
+        )}
+      </div>
+
+      <div style={{ marginTop: "10px" }}>
+        💰 TO YQM:{" "}
+        <strong>${getToTotal(ride).toFixed(2)}</strong>
+        {" — "}
+        {ride.to_paid ? "Paid ✅" : "Unpaid ❌"}
+      </div>
+
+      {ride.return_requested && (
+        <div>
+          🔁 Return:{" "}
+          <strong>
+            ${getReturnTotal(ride).toFixed(2)}
+          </strong>
+          {" — "}
+          {ride.return_paid
+            ? "Paid ✅"
+            : "Unpaid ❌"}
+        </div>
+      )}
+
+      <div style={bookingTotalStyle}>
+        Booking Total: $
+        {(
+          getToTotal(ride) +
+          getReturnTotal(ride)
+        ).toFixed(2)}
+      </div>
+    </div>
+  );
+}
+
+function ReturnCard({
+  ride,
+  getReturnTotal,
+  returnStatusText,
+  updateReturnStatus,
+  openEditRide,
+}) {
+  return (
+    <div style={rideCardStyle}>
+      <div style={rideCardHeaderStyle}>
+        <div>
+          <strong>{ride.client_name}</strong>
+          <span style={mutedTextStyle}>
+            {" "}
+            · {ride.group_size} passengers
+          </span>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => openEditRide(ride)}
+          style={smallActionButtonStyle}
+        >
+          ✏️ Edit
+        </button>
+      </div>
+
+      <div>
+        📍 Return to:{" "}
+        {ride.return_location || "No return location"}
+      </div>
+
+      <div>
+        🚗 Return Driver:{" "}
+        {ride.return_driver || "Not assigned"}
+      </div>
+
+      <div>
+        📋 Return Status:{" "}
+        <strong>
+          {returnStatusText(ride.return_status)}
+        </strong>
+      </div>
+
+      <div style={actionRowStyle}>
+        {(!ride.return_status ||
+          ride.return_status === "waiting") && (
+          <button
+            type="button"
+            onClick={() =>
+              updateReturnStatus(
+                ride.id,
+                "on_my_way"
+              )
+            }
+            style={statusButtonStyle}
+          >
+            🚗 On my way
+          </button>
+        )}
+
+        {ride.return_status === "on_my_way" && (
+          <button
+            type="button"
+            onClick={() =>
+              updateReturnStatus(
+                ride.id,
+                "picked_up"
+              )
+            }
+            style={statusButtonStyle}
+          >
+            👥 Picked up
+          </button>
+        )}
+
+        {ride.return_status === "picked_up" && (
+          <button
+            type="button"
+            onClick={() =>
+              updateReturnStatus(
+                ride.id,
+                "completed"
+              )
+            }
+            style={statusButtonStyle}
+          >
+            ✅ Returned home
+          </button>
+        )}
+      </div>
+
+      <div style={{ marginTop: "10px" }}>
+        💰 Return:{" "}
+        <strong>
+          ${getReturnTotal(ride).toFixed(2)}
+        </strong>
+        {" — "}
+        {ride.return_paid
+          ? "Paid ✅"
+          : "Unpaid ❌"}
+      </div>
+    </div>
+  );
+}
+
+function SummaryBox({ icon, value, label }) {
+  return (
+    <div style={summaryBoxStyle}>
+      <div style={{ fontSize: "24px" }}>{icon}</div>
+      <strong style={{ fontSize: "22px" }}>
+        {value}
+      </strong>
+      <span style={mutedTextStyle}>{label}</span>
     </div>
   );
 }
 
 function Field({ label, children }) {
   return (
-    <label
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: "7px",
-      }}
-    >
+    <label style={fieldStyle}>
       <span style={{ fontWeight: "bold" }}>
         {label}
       </span>
-
       {children}
     </label>
   );
 }
+
+const pageStyle = {
+  minHeight: "100vh",
+  background: "#f5f7fa",
+  fontFamily: "Arial, sans-serif",
+  color: "#172033",
+};
+
+const headerStyle = {
+  background: "#172033",
+  color: "white",
+  padding: "18px 22px",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "15px",
+};
+
+const headerSubtitleStyle = {
+  margin: "6px 0 0",
+  opacity: 0.8,
+};
+
+const contentStyle = {
+  padding: "20px",
+  maxWidth: "1050px",
+  margin: "auto",
+};
+
+const welcomeRowStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "15px",
+  flexWrap: "wrap",
+};
+
+const summaryGridStyle = {
+  display: "grid",
+  gridTemplateColumns:
+    "repeat(auto-fit, minmax(140px, 1fr))",
+  gap: "12px",
+  marginTop: "20px",
+};
+
+const summaryBoxStyle = {
+  background: "white",
+  padding: "15px",
+  borderRadius: "12px",
+  boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+  display: "flex",
+  flexDirection: "column",
+  gap: "4px",
+};
+
+const sectionStyle = {
+  marginTop: "25px",
+  background: "white",
+  padding: "20px",
+  borderRadius: "12px",
+  boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+};
+
+const sectionTitleStyle = {
+  marginTop: 0,
+};
+
+const daySectionStyle = {
+  marginTop: "14px",
+  border: "1px solid #e5e7eb",
+  borderRadius: "10px",
+  overflow: "hidden",
+};
+
+const daySummaryStyle = {
+  padding: "14px",
+  fontWeight: "bold",
+  cursor: "pointer",
+  background: "#f8fafc",
+};
+
+const scheduleListStyle = {
+  padding: "0 14px",
+};
+
+const scheduleRowStyle = {
+  padding: "12px 0",
+  borderBottom: "1px solid #e5e7eb",
+};
+
+const scheduleMainStyle = {
+  display: "grid",
+  gridTemplateColumns:
+    "90px minmax(130px, 1fr) 120px 120px 130px 90px",
+  gap: "8px",
+  alignItems: "center",
+  overflowX: "auto",
+  fontSize: "14px",
+};
+
+const scheduleActionsStyle = {
+  display: "flex",
+  gap: "8px",
+  flexWrap: "wrap",
+  marginTop: "8px",
+};
+
+const rideCardStyle = {
+  padding: "16px 0",
+  borderBottom: "1px solid #e5e7eb",
+  lineHeight: 1.7,
+};
+
+const rideCardHeaderStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "10px",
+  flexWrap: "wrap",
+};
+
+const actionRowStyle = {
+  display: "flex",
+  gap: "8px",
+  flexWrap: "wrap",
+  marginTop: "10px",
+};
+
+const bookingTotalStyle = {
+  fontWeight: "bold",
+  marginTop: "5px",
+};
+
+const formCardStyle = {
+  background: "white",
+  padding: "20px",
+  marginTop: "25px",
+  borderRadius: "12px",
+  boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+};
+
+const formHeaderStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "10px",
+  marginBottom: "20px",
+};
+
+const formSectionTitleStyle = {
+  marginTop: "30px",
+};
 
 const gridStyle = {
   display: "grid",
   gridTemplateColumns:
     "repeat(auto-fit, minmax(220px, 1fr))",
   gap: "15px",
+};
+
+const fieldStyle = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "7px",
 };
 
 const inputStyle = {
@@ -1235,30 +1581,55 @@ const inputStyle = {
 const buttonStyle = {
   width: "100%",
   padding: "16px",
-  marginTop: "25px",
+  marginTop: "20px",
   background: "#172033",
   color: "white",
   border: "none",
-  borderRadius: "12px",
-  fontSize: "17px",
+  borderRadius: "10px",
+  fontSize: "16px",
+  fontWeight: "bold",
+  cursor: "pointer",
+};
+
+const newRideButtonStyle = {
+  padding: "12px 18px",
+  background: "#172033",
+  color: "white",
+  border: "none",
+  borderRadius: "10px",
+  fontSize: "15px",
   fontWeight: "bold",
   cursor: "pointer",
 };
 
 const saveButtonStyle = {
-  ...buttonStyle,
+  padding: "14px 18px",
   background: "#1f7a4d",
+  color: "white",
+  border: "none",
+  borderRadius: "10px",
+  fontSize: "16px",
+  fontWeight: "bold",
+  cursor: "pointer",
+  flex: 1,
 };
 
-const formCardStyle = {
+const cancelButtonStyle = {
+  padding: "14px 18px",
   background: "white",
-  padding: "20px",
-  marginTop: "20px",
-  borderRadius: "12px",
-  boxShadow:
-    "0 2px 8px rgba(0,0,0,0.08)",
+  color: "#172033",
+  border: "1px solid #cbd5e1",
+  borderRadius: "10px",
+  fontSize: "16px",
+  fontWeight: "bold",
+  cursor: "pointer",
 };
 
+const formActionRowStyle = {
+  display: "flex",
+  gap: "10px",
+  marginTop: "20px",
+};
 
 const statusButtonStyle = {
   padding: "10px 12px",
@@ -1268,4 +1639,42 @@ const statusButtonStyle = {
   fontSize: "14px",
   fontWeight: "bold",
   cursor: "pointer",
+};
+
+const smallActionButtonStyle = {
+  padding: "7px 10px",
+  borderRadius: "7px",
+  border: "1px solid #cbd5e1",
+  background: "white",
+  fontSize: "13px",
+  fontWeight: "bold",
+  cursor: "pointer",
+};
+
+const closeButtonStyle = {
+  border: "none",
+  background: "transparent",
+  fontSize: "22px",
+  cursor: "pointer",
+};
+
+const logoutButtonStyle = {
+  padding: "8px 12px",
+  borderRadius: "8px",
+  border: "1px solid rgba(255,255,255,0.35)",
+  background: "transparent",
+  color: "white",
+  cursor: "pointer",
+};
+
+const messageStyle = {
+  marginTop: "20px",
+  padding: "15px",
+  background: "white",
+  borderRadius: "10px",
+  border: "1px solid #cbd5e1",
+};
+
+const mutedTextStyle = {
+  color: "#667085",
 };
