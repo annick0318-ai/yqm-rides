@@ -32,38 +32,27 @@ export default function Home() {
   const [showForm, setShowForm] = useState(false);
   const [editingRideId, setEditingRideId] = useState(null);
 
-  const [pricingType, setPricingType] =
-    useState("per_person");
-
+  const [pricingType, setPricingType] = useState("per_person");
   const [returnPricingType, setReturnPricingType] =
     useState("per_person");
 
-  const [formData, setFormData] =
-    useState(emptyForm);
+  const [formData, setFormData] = useState(emptyForm);
 
   const [email, setEmail] = useState("");
-  const [password, setPassword] =
-    useState("");
-
-  const [loggedIn, setLoggedIn] =
-    useState(false);
+  const [password, setPassword] = useState("");
+  const [loggedIn, setLoggedIn] = useState(false);
 
   const [rides, setRides] = useState([]);
-  const [loadingRides, setLoadingRides] =
-    useState(false);
+  const [loadingRides, setLoadingRides] = useState(false);
 
-  const [message, setMessage] =
-    useState("");
-
-  const [saving, setSaving] =
-    useState(false);
+  const [message, setMessage] = useState("");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     async function restoreSession() {
       const {
         data: { session },
-      } =
-        await supabase.auth.getSession();
+      } = await supabase.auth.getSession();
 
       if (session) {
         setLoggedIn(true);
@@ -77,23 +66,14 @@ export default function Home() {
   async function loadRides() {
     setLoadingRides(true);
 
-    const { data, error } =
-      await supabase
-        .from("Bookings")
-        .select("*")
-        .order("event_date", {
-          ascending: true,
-        })
-        .order("pickup_time", {
-          ascending: true,
-        });
+    const { data, error } = await supabase
+      .from("Bookings")
+      .select("*")
+      .order("event_date", { ascending: true })
+      .order("pickup_time", { ascending: true });
 
     if (error) {
-      setMessage(
-        "Could not load rides: " +
-          error.message
-      );
-
+      setMessage("Could not load rides: " + error.message);
       setLoadingRides(false);
       return;
     }
@@ -105,22 +85,18 @@ export default function Home() {
   async function handleLogin() {
     setMessage("Signing in...");
 
-    const { error } =
-      await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
     if (error) {
-      setMessage(
-        "Login failed: " + error.message
-      );
+      setMessage("Login failed: " + error.message);
       return;
     }
 
     setLoggedIn(true);
     setMessage("");
-
     await loadRides();
   }
 
@@ -158,56 +134,27 @@ export default function Home() {
     setEditingRideId(ride.id);
 
     setFormData({
-      client_name:
-        ride.client_name || "",
-      phone:
-        ride.phone || "",
-      group_size:
-        ride.group_size || "",
-      event_date:
-        ride.event_date || "",
-      pickup_time:
-        ride.pickup_time || "",
-      pickup_location:
-        ride.pickup_location || "",
-      driver:
-        ride.to_driver || "",
-      to_price:
-        ride.to_price ?? "",
-      to_paid:
-        Boolean(ride.to_paid),
-
-      return_requested:
-        Boolean(
-          ride.return_requested
-        ),
-
-      return_location:
-        ride.return_location || "",
-
-      return_driver:
-        ride.return_driver || "",
-
-      return_price:
-        ride.return_price ?? "",
-
-      return_paid:
-        Boolean(
-          ride.return_paid
-        ),
-
-      notes:
-        ride.notes || "",
+      client_name: ride.client_name || "",
+      phone: ride.phone || "",
+      group_size: ride.group_size || "",
+      event_date: ride.event_date || "",
+      pickup_time: ride.pickup_time || "",
+      pickup_location: ride.pickup_location || "",
+      driver: ride.to_driver || "",
+      to_price: ride.to_price ?? "",
+      to_paid: Boolean(ride.to_paid),
+      return_requested: Boolean(ride.return_requested),
+      return_location: ride.return_location || "",
+      return_driver: ride.return_driver || "",
+      return_price: ride.return_price ?? "",
+      return_paid: Boolean(ride.return_paid),
+      notes: ride.notes || "",
     });
 
-    setPricingType(
-      ride.to_price_type ||
-        "per_person"
-    );
+    setPricingType(ride.to_price_type || "per_person");
 
     setReturnPricingType(
-      ride.return_price_type ||
-        "per_person"
+      ride.return_price_type || "per_person"
     );
 
     setShowForm(true);
@@ -226,75 +173,45 @@ export default function Home() {
     eventDate,
     excludeRideId = null
   ) {
-    const { data, error } =
-      await supabase
-        .from("Bookings")
-        .select(
-          "id, return_queue_position"
-        )
-        .eq(
-          "event_date",
-          eventDate
-        )
-        .eq(
-          "return_requested",
-          true
-        );
+    const { data, error } = await supabase
+      .from("Bookings")
+      .select("id, return_queue_position")
+      .eq("event_date", eventDate)
+      .eq("return_requested", true);
 
     if (error) {
       throw error;
     }
 
-    const positions = (
-      data || []
-    )
+    const positions = (data || [])
       .filter(
         (ride) =>
           excludeRideId === null ||
-          String(ride.id) !==
-            String(excludeRideId)
+          String(ride.id) !== String(excludeRideId)
       )
-      .map((ride) =>
-        Number(
-          ride.return_queue_position
-        )
-      )
-      .filter((position) =>
-        Number.isFinite(position)
-      );
+      .map((ride) => Number(ride.return_queue_position))
+      .filter((position) => Number.isFinite(position));
 
-    if (
-      positions.length === 0
-    ) {
+    if (positions.length === 0) {
       return 1;
     }
 
-    return (
-      Math.max(...positions) + 1
-    );
+    return Math.max(...positions) + 1;
   }
 
   async function handleSaveRide() {
-    if (
-      !formData.client_name.trim()
-    ) {
-      setMessage(
-        "Please enter the client / group name."
-      );
+    if (!formData.client_name.trim()) {
+      setMessage("Please enter the client / group name.");
       return;
     }
 
     if (!formData.group_size) {
-      setMessage(
-        "Please enter the group size."
-      );
+      setMessage("Please enter the group size.");
       return;
     }
 
     if (!formData.event_date) {
-      setMessage(
-        "Please choose a date."
-      );
+      setMessage("Please choose a date.");
       return;
     }
 
@@ -311,17 +228,12 @@ export default function Home() {
     if (editingRideId) {
       const {
         data,
-        error:
-          existingRideError,
-      } =
-        await supabase
-          .from("Bookings")
-          .select("*")
-          .eq(
-            "id",
-            editingRideId
-          )
-          .single();
+        error: existingRideError,
+      } = await supabase
+        .from("Bookings")
+        .select("*")
+        .eq("id", editingRideId)
+        .single();
 
       if (existingRideError) {
         setMessage(
@@ -336,29 +248,22 @@ export default function Home() {
       existingRide = data;
     }
 
-    let returnQueuePosition =
-      null;
-
+    let returnQueuePosition = null;
     let returnStatus = null;
 
-    if (
-      formData.return_requested
-    ) {
+    if (formData.return_requested) {
       const canKeepPriority =
         existingRide &&
         existingRide.return_requested &&
-        existingRide.event_date ===
-          formData.event_date &&
-        existingRide.return_queue_position !==
-          null;
+        existingRide.event_date === formData.event_date &&
+        existingRide.return_queue_position !== null;
 
       if (canKeepPriority) {
         returnQueuePosition =
           existingRide.return_queue_position;
 
         returnStatus =
-          existingRide.return_status ||
-          "waiting";
+          existingRide.return_status || "waiting";
       } else {
         try {
           returnQueuePosition =
@@ -367,8 +272,7 @@ export default function Home() {
               editingRideId
             );
 
-          returnStatus =
-            "waiting";
+          returnStatus = "waiting";
         } catch (error) {
           setMessage(
             "Could not assign return priority: " +
@@ -382,127 +286,81 @@ export default function Home() {
     }
 
     const booking = {
-      client_name:
-        formData.client_name.trim(),
+      client_name: formData.client_name.trim(),
+      phone: formData.phone || null,
+      group_size: Number(formData.group_size),
+      event_date: formData.event_date,
+      pickup_time: formData.pickup_time || null,
+      pickup_location: formData.pickup_location || null,
 
-      phone:
-        formData.phone || null,
-
-      group_size:
-        Number(
-          formData.group_size
-        ),
-
-      event_date:
-        formData.event_date,
-
-      pickup_time:
-        formData.pickup_time ||
-        null,
-
-      pickup_location:
-        formData.pickup_location ||
-        null,
-
-      to_driver:
-        formData.driver || null,
-
-      to_price_type:
-        pricingType,
+      to_driver: formData.driver || null,
+      to_price_type: pricingType,
 
       to_price:
         formData.to_price === ""
           ? null
-          : Number(
-              formData.to_price
-            ),
+          : Number(formData.to_price),
 
-      to_paid:
-        formData.to_paid,
+      to_paid: formData.to_paid,
 
-      return_requested:
-        formData.return_requested,
+      return_requested: formData.return_requested,
 
-      return_location:
-        formData.return_requested
-          ? formData.return_location ||
-            null
-          : null,
+      return_location: formData.return_requested
+        ? formData.return_location || null
+        : null,
 
-      return_driver:
-        formData.return_requested
-          ? formData.return_driver ||
-            null
-          : null,
+      return_driver: formData.return_requested
+        ? formData.return_driver || null
+        : null,
 
-      return_price_type:
-        formData.return_requested
-          ? returnPricingType
-          : null,
+      return_price_type: formData.return_requested
+        ? returnPricingType
+        : null,
 
       return_price:
         formData.return_requested &&
         formData.return_price !== ""
-          ? Number(
-              formData.return_price
-            )
+          ? Number(formData.return_price)
           : null,
 
-      return_paid:
-        formData.return_requested
-          ? formData.return_paid
-          : false,
+      return_paid: formData.return_requested
+        ? formData.return_paid
+        : false,
 
-      return_status:
-        returnStatus,
+      return_status: returnStatus,
+      return_queue_position: returnQueuePosition,
 
-      return_queue_position:
-        returnQueuePosition,
+      notes: formData.notes || null,
 
-      notes:
-        formData.notes ||
-        null,
-
-      event_name:
-        "YQM Country Fest",
+      event_name: "YQM Country Fest",
     };
 
     let error;
 
     if (editingRideId) {
-      const result =
-        await supabase
-          .from("Bookings")
-          .update(booking)
-          .eq(
-            "id",
-            editingRideId
-          );
+      const result = await supabase
+        .from("Bookings")
+        .update(booking)
+        .eq("id", editingRideId);
 
-      error =
-        result.error;
+      error = result.error;
     } else {
-      const result =
-        await supabase
-          .from("Bookings")
-          .insert([
-            {
-              ...booking,
-              to_status:
-                "upcoming",
-              cancelled:
-                false,
-            },
-          ]);
+      const result = await supabase
+        .from("Bookings")
+        .insert([
+          {
+            ...booking,
+            to_status: "upcoming",
+            cancelled: false,
+          },
+        ]);
 
-      error =
-        result.error;
+      error = result.error;
     }
 
     if (error) {
       setMessage(
-        "Could not save ride: " +
-          error.message
+        "Could not save ride: " + error.message
       );
 
       setSaving(false);
@@ -521,21 +379,13 @@ export default function Home() {
     setSaving(false);
   }
 
-  async function updateRideStatus(
-    rideId,
-    newStatus
-  ) {
-    const { error } =
-      await supabase
-        .from("Bookings")
-        .update({
-          to_status:
-            newStatus,
-        })
-        .eq(
-          "id",
-          rideId
-        );
+  async function updateRideStatus(rideId, newStatus) {
+    const { error } = await supabase
+      .from("Bookings")
+      .update({
+        to_status: newStatus,
+      })
+      .eq("id", rideId);
 
     if (error) {
       setMessage(
@@ -552,17 +402,12 @@ export default function Home() {
     rideId,
     newStatus
   ) {
-    const { error } =
-      await supabase
-        .from("Bookings")
-        .update({
-          return_status:
-            newStatus,
-        })
-        .eq(
-          "id",
-          rideId
-        );
+    const { error } = await supabase
+      .from("Bookings")
+      .update({
+        return_status: newStatus,
+      })
+      .eq("id", rideId);
 
     if (error) {
       setMessage(
@@ -575,23 +420,15 @@ export default function Home() {
     await loadRides();
   }
 
-  async function toggleToPaid(
-    ride
-  ) {
-    const newPaidStatus =
-      !ride.to_paid;
+  async function toggleToPaid(ride) {
+    const newPaidStatus = !ride.to_paid;
 
-    const { error } =
-      await supabase
-        .from("Bookings")
-        .update({
-          to_paid:
-            newPaidStatus,
-        })
-        .eq(
-          "id",
-          ride.id
-        );
+    const { error } = await supabase
+      .from("Bookings")
+      .update({
+        to_paid: newPaidStatus,
+      })
+      .eq("id", ride.id);
 
     if (error) {
       setMessage(
@@ -610,23 +447,15 @@ export default function Home() {
     await loadRides();
   }
 
-  async function toggleReturnPaid(
-    ride
-  ) {
-    const newPaidStatus =
-      !ride.return_paid;
+  async function toggleReturnPaid(ride) {
+    const newPaidStatus = !ride.return_paid;
 
-    const { error } =
-      await supabase
-        .from("Bookings")
-        .update({
-          return_paid:
-            newPaidStatus,
-        })
-        .eq(
-          "id",
-          ride.id
-        );
+    const { error } = await supabase
+      .from("Bookings")
+      .update({
+        return_paid: newPaidStatus,
+      })
+      .eq("id", ride.id);
 
     if (error) {
       setMessage(
@@ -645,20 +474,13 @@ export default function Home() {
     await loadRides();
   }
 
-  async function toggleCancelled(
-    ride
-  ) {
-    const { error } =
-      await supabase
-        .from("Bookings")
-        .update({
-          cancelled:
-            !ride.cancelled,
-        })
-        .eq(
-          "id",
-          ride.id
-        );
+  async function toggleCancelled(ride) {
+    const { error } = await supabase
+      .from("Bookings")
+      .update({
+        cancelled: !ride.cancelled,
+      })
+      .eq("id", ride.id);
 
     if (error) {
       setMessage(
@@ -671,26 +493,19 @@ export default function Home() {
     await loadRides();
   }
 
-  async function deleteRide(
-    ride
-  ) {
-    const confirmed =
-      window.confirm(
-        `Permanently delete ${ride.client_name}'s booking?\n\nThis cannot be undone.`
-      );
+  async function deleteRide(ride) {
+    const confirmed = window.confirm(
+      `Permanently delete ${ride.client_name}'s booking?\n\nThis cannot be undone.`
+    );
 
     if (!confirmed) {
       return;
     }
 
-    const { error } =
-      await supabase
-        .from("Bookings")
-        .delete()
-        .eq(
-          "id",
-          ride.id
-        );
+    const { error } = await supabase
+      .from("Bookings")
+      .delete()
+      .eq("id", ride.id);
 
     if (error) {
       setMessage(
@@ -700,10 +515,7 @@ export default function Home() {
       return;
     }
 
-    if (
-      editingRideId ===
-      ride.id
-    ) {
+    if (editingRideId === ride.id) {
       resetForm();
     }
 
@@ -722,10 +534,7 @@ export default function Home() {
       .split(" ")[0];
   }
 
-  function openTextMessage(
-    phone,
-    text
-  ) {
+  function openTextMessage(phone, text) {
     if (!phone) {
       setMessage(
         "No phone number is saved for this client."
@@ -734,10 +543,7 @@ export default function Home() {
     }
 
     const cleanPhone =
-      phone.replace(
-        /[^\d+]/g,
-        ""
-      );
+      phone.replace(/[^\d+]/g, "");
 
     if (!cleanPhone) {
       setMessage(
@@ -753,13 +559,9 @@ export default function Home() {
       `sms:${cleanPhone}&body=${encodedMessage}`;
   }
 
-  function textToOnMyWay(
-    ride
-  ) {
+  function textToOnMyWay(ride) {
     const name =
-      firstName(
-        ride.client_name
-      );
+      firstName(ride.client_name);
 
     const driver =
       ride.to_driver ||
@@ -776,13 +578,9 @@ export default function Home() {
     );
   }
 
-  function textToImHere(
-    ride
-  ) {
+  function textToImHere(ride) {
     const name =
-      firstName(
-        ride.client_name
-      );
+      firstName(ride.client_name);
 
     const driver =
       ride.to_driver ||
@@ -794,13 +592,9 @@ export default function Home() {
     );
   }
 
-  function textReturnOnMyWay(
-    ride
-  ) {
+  function textReturnOnMyWay(ride) {
     const name =
-      firstName(
-        ride.client_name
-      );
+      firstName(ride.client_name);
 
     const driver =
       ride.return_driver ||
@@ -812,13 +606,9 @@ export default function Home() {
     );
   }
 
-  function textReturnImHere(
-    ride
-  ) {
+  function textReturnImHere(ride) {
     const name =
-      firstName(
-        ride.client_name
-      );
+      firstName(ride.client_name);
 
     const driver =
       ride.return_driver ||
@@ -830,34 +620,22 @@ export default function Home() {
     );
   }
 
-  function getToTotal(
-    ride
-  ) {
+  function getToTotal(ride) {
     if (
       ride.to_price_type ===
       "per_person"
     ) {
       return (
-        Number(
-          ride.to_price || 0
-        ) *
-        Number(
-          ride.group_size || 0
-        )
+        Number(ride.to_price || 0) *
+        Number(ride.group_size || 0)
       );
     }
 
-    return Number(
-      ride.to_price || 0
-    );
+    return Number(ride.to_price || 0);
   }
 
-  function getReturnTotal(
-    ride
-  ) {
-    if (
-      !ride.return_requested
-    ) {
+  function getReturnTotal(ride) {
+    if (!ride.return_requested) {
       return 0;
     }
 
@@ -866,12 +644,8 @@ export default function Home() {
       "per_person"
     ) {
       return (
-        Number(
-          ride.return_price || 0
-        ) *
-        Number(
-          ride.group_size || 0
-        )
+        Number(ride.return_price || 0) *
+        Number(ride.group_size || 0)
       );
     }
 
@@ -880,9 +654,7 @@ export default function Home() {
     );
   }
 
-  function formatTime(
-    time
-  ) {
+  function formatTime(time) {
     if (!time) {
       return "No time";
     }
@@ -890,8 +662,7 @@ export default function Home() {
     const [
       hourString,
       minute,
-    ] =
-      time.split(":");
+    ] = time.split(":");
 
     const hour =
       Number(hourString);
@@ -907,9 +678,7 @@ export default function Home() {
     return `${normalHour}:${minute} ${suffix}`;
   }
 
-  function formatDate(
-    date
-  ) {
+  function formatDate(date) {
     if (!date) {
       return "No date";
     }
@@ -919,117 +688,74 @@ export default function Home() {
     ).toLocaleDateString(
       "en-CA",
       {
-        weekday:
-          "long",
-        month:
-          "long",
-        day:
-          "numeric",
+        weekday: "long",
+        month: "long",
+        day: "numeric",
       }
     );
   }
 
-  function toStatusText(
-    status
-  ) {
-    if (
-      status ===
-      "on_my_way"
-    ) {
+  function toStatusText(status) {
+    if (status === "on_my_way") {
       return "On my way 🚗";
     }
 
-    if (
-      status ===
-      "picked_up"
-    ) {
+    if (status === "picked_up") {
       return "Picked up 👥";
     }
 
-    if (
-      status ===
-      "completed"
-    ) {
+    if (status === "completed") {
       return "Dropped off ✅";
     }
 
     return "Upcoming 🕐";
   }
 
-  function returnStatusText(
-    status
-  ) {
-    if (
-      status ===
-      "on_my_way"
-    ) {
+  function returnStatusText(status) {
+    if (status === "on_my_way") {
       return "On my way 🚗";
     }
 
-    if (
-      status ===
-      "picked_up"
-    ) {
+    if (status === "picked_up") {
       return "Picked up 👥";
     }
 
-    if (
-      status ===
-      "completed"
-    ) {
+    if (status === "completed") {
       return "Returned home ✅";
     }
 
     return "Waiting ⏳";
   }
 
-  function scheduleReturnText(
-    ride
-  ) {
-    if (
-      !ride.return_requested
-    ) {
+  function scheduleReturnText(ride) {
+    if (!ride.return_requested) {
       return "—";
     }
 
-    if (
-      ride.return_status ===
-      "completed"
-    ) {
+    if (ride.return_status === "completed") {
       return "✅ Return complete";
     }
 
-    if (
-      ride.return_status ===
-      "picked_up"
-    ) {
+    if (ride.return_status === "picked_up") {
       return "🔁 Picked up 👥";
     }
 
-    if (
-      ride.return_status ===
-      "on_my_way"
-    ) {
+    if (ride.return_status === "on_my_way") {
       return "🔁 On my way 🚗";
     }
 
     return "🔁 Return waiting";
   }
 
-  function isFullyCompleted(
-    ride
-  ) {
+  function isFullyCompleted(ride) {
     const toComplete =
-      ride.to_status ===
-      "completed";
+      ride.to_status === "completed";
 
     if (!toComplete) {
       return false;
     }
 
-    if (
-      !ride.return_requested
-    ) {
+    if (!ride.return_requested) {
       return true;
     }
 
@@ -1039,9 +765,7 @@ export default function Home() {
     );
   }
 
-  function getDatesForRides(
-    list
-  ) {
+  function getDatesForRides(list) {
     return [
       ...new Set(
         list
@@ -1054,15 +778,11 @@ export default function Home() {
     ].sort();
   }
 
-  function ridesForDate(
-    list,
-    date
-  ) {
+  function ridesForDate(list, date) {
     return list
       .filter(
         (ride) =>
-          ride.event_date ===
-          date
+          ride.event_date === date
       )
       .sort((a, b) =>
         (
@@ -1080,8 +800,7 @@ export default function Home() {
     return list
       .filter(
         (ride) =>
-          ride.event_date ===
-          date
+          ride.event_date === date
       )
       .sort((a, b) => {
         const aPosition =
@@ -1095,22 +814,16 @@ export default function Home() {
           );
 
         const safeA =
-          Number.isFinite(
-            aPosition
-          )
+          Number.isFinite(aPosition)
             ? aPosition
             : 999999;
 
         const safeB =
-          Number.isFinite(
-            bPosition
-          )
+          Number.isFinite(bPosition)
             ? bPosition
             : 999999;
 
-        return (
-          safeA - safeB
-        );
+        return safeA - safeB;
       });
   }
 
@@ -1129,9 +842,7 @@ export default function Home() {
   const weekendSchedule =
     validRides.filter(
       (ride) =>
-        !isFullyCompleted(
-          ride
-        )
+        !isFullyCompleted(ride)
     );
 
   const activeToRides =
@@ -1154,9 +865,7 @@ export default function Home() {
   const completedRides =
     validRides.filter(
       (ride) =>
-        isFullyCompleted(
-          ride
-        )
+        isFullyCompleted(ride)
     );
 
   const expectedTotal =
@@ -1173,17 +882,13 @@ export default function Home() {
       (sum, ride) => {
         const toCollected =
           ride.to_paid
-            ? getToTotal(
-                ride
-              )
+            ? getToTotal(ride)
             : 0;
 
         const returnCollected =
           ride.return_requested &&
           ride.return_paid
-            ? getReturnTotal(
-                ride
-              )
+            ? getReturnTotal(ride)
             : 0;
 
         return (
@@ -1197,9 +902,7 @@ export default function Home() {
 
   return (
     <main style={pageStyle}>
-      <header
-        style={headerStyle}
-      >
+      <header style={headerStyle}>
         <div>
           <h1
             style={{
@@ -1233,17 +936,9 @@ export default function Home() {
         )}
       </header>
 
-      <div
-        style={
-          contentStyle
-        }
-      >
+      <div style={contentStyle}>
         {!loggedIn && (
-          <div
-            style={
-              formCardStyle
-            }
-          >
+          <div style={formCardStyle}>
             <h2
               style={{
                 marginTop: 0,
@@ -1253,31 +948,19 @@ export default function Home() {
             </h2>
 
             <p>
-              Sign in with your
-              YQM Rides driver
-              account.
+              Sign in with your YQM
+              Rides driver account.
             </p>
 
-            <div
-              style={
-                gridStyle
-              }
-            >
+            <div style={gridStyle}>
               <Field label="Email">
                 <input
-                  style={
-                    inputStyle
-                  }
+                  style={inputStyle}
                   type="email"
-                  value={
-                    email
-                  }
-                  onChange={(
-                    e
-                  ) =>
+                  value={email}
+                  onChange={(e) =>
                     setEmail(
-                      e.target
-                        .value
+                      e.target.value
                     )
                   }
                 />
@@ -1285,19 +968,12 @@ export default function Home() {
 
               <Field label="Password">
                 <input
-                  style={
-                    inputStyle
-                  }
+                  style={inputStyle}
                   type="password"
-                  value={
-                    password
-                  }
-                  onChange={(
-                    e
-                  ) =>
+                  value={password}
+                  onChange={(e) =>
                     setPassword(
-                      e.target
-                        .value
+                      e.target.value
                     )
                   }
                 />
@@ -1306,12 +982,8 @@ export default function Home() {
 
             <button
               type="button"
-              style={
-                buttonStyle
-              }
-              onClick={
-                handleLogin
-              }
+              style={buttonStyle}
+              onClick={handleLogin}
             >
               Sign In
             </button>
@@ -1341,8 +1013,8 @@ export default function Home() {
                   }}
                 >
                   Your shared ride
-                  schedule and
-                  dispatch board.
+                  schedule and dispatch
+                  board.
                 </p>
               </div>
 
@@ -1406,9 +1078,7 @@ export default function Home() {
             </div>
 
             <section
-              style={
-                sectionStyle
-              }
+              style={sectionStyle}
             >
               <h2
                 style={
@@ -1423,16 +1093,14 @@ export default function Home() {
                   sectionSubtitleStyle
                 }
               >
-                Upcoming and
-                unfinished bookings.
-                Fully completed rides
-                move to Completed.
+                Upcoming and unfinished
+                bookings. Fully completed
+                rides move to Completed.
               </p>
 
               {loadingRides && (
                 <p>
-                  Loading
-                  schedule...
+                  Loading schedule...
                 </p>
               )}
 
@@ -1490,9 +1158,7 @@ export default function Home() {
                         (ride) => (
                           <ScheduleRideRow
                             key={`weekend-${ride.id}`}
-                            ride={
-                              ride
-                            }
+                            ride={ride}
                             getToTotal={
                               getToTotal
                             }
@@ -1524,9 +1190,7 @@ export default function Home() {
             </section>
 
             <section
-              style={
-                sectionStyle
-              }
+              style={sectionStyle}
             >
               <h2
                 style={
@@ -1549,8 +1213,7 @@ export default function Home() {
               {activeToRides.length ===
                 0 && (
                 <p>
-                  No active TO
-                  rides.
+                  No active TO rides.
                 </p>
               )}
 
@@ -1595,12 +1258,8 @@ export default function Home() {
                       {dayRides.map(
                         (ride) => (
                           <ActiveToCard
-                            key={
-                              ride.id
-                            }
-                            ride={
-                              ride
-                            }
+                            key={ride.id}
+                            ride={ride}
                             formatTime={
                               formatTime
                             }
@@ -1638,9 +1297,7 @@ export default function Home() {
             </section>
 
             <section
-              style={
-                sectionStyle
-              }
+              style={sectionStyle}
             >
               <h2
                 style={
@@ -1713,12 +1370,9 @@ export default function Home() {
                         ) => (
                           <ReturnRideCard
                             key={`return-${ride.id}`}
-                            ride={
-                              ride
-                            }
+                            ride={ride}
                             visiblePriority={
-                              index +
-                              1
+                              index + 1
                             }
                             returnStatusText={
                               returnStatusText
@@ -1776,8 +1430,8 @@ export default function Home() {
               {completedRides.length ===
                 0 && (
                 <p>
-                  No completed
-                  bookings yet.
+                  No completed bookings
+                  yet.
                 </p>
               )}
 
@@ -1822,9 +1476,7 @@ export default function Home() {
                         (ride) => (
                           <CompletedRideCard
                             key={`completed-${ride.id}`}
-                            ride={
-                              ride
-                            }
+                            ride={ride}
                             getToTotal={
                               getToTotal
                             }
@@ -1868,8 +1520,7 @@ export default function Home() {
                 >
                   Cancelled bookings
                   remain here so you can
-                  restore them if
-                  needed.
+                  restore them if needed.
                 </p>
 
                 {getDatesForRides(
@@ -1995,9 +1646,7 @@ export default function Home() {
 
                   <button
                     type="button"
-                    onClick={
-                      resetForm
-                    }
+                    onClick={resetForm}
                     style={
                       closeButtonStyle
                     }
@@ -2006,11 +1655,7 @@ export default function Home() {
                   </button>
                 </div>
 
-                <div
-                  style={
-                    gridStyle
-                  }
-                >
+                <div style={gridStyle}>
                   <Field label="Client / Group Name">
                     <input
                       style={
@@ -2020,18 +1665,12 @@ export default function Home() {
                       value={
                         formData.client_name
                       }
-                      onChange={(
-                        e
-                      ) =>
-                        setFormData(
-                          {
-                            ...formData,
-                            client_name:
-                              e
-                                .target
-                                .value,
-                          }
-                        )
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          client_name:
+                            e.target.value,
+                        })
                       }
                     />
                   </Field>
@@ -2045,18 +1684,12 @@ export default function Home() {
                       value={
                         formData.phone
                       }
-                      onChange={(
-                        e
-                      ) =>
-                        setFormData(
-                          {
-                            ...formData,
-                            phone:
-                              e
-                                .target
-                                .value,
-                          }
-                        )
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          phone:
+                            e.target.value,
+                        })
                       }
                     />
                   </Field>
@@ -2071,18 +1704,12 @@ export default function Home() {
                       value={
                         formData.group_size
                       }
-                      onChange={(
-                        e
-                      ) =>
-                        setFormData(
-                          {
-                            ...formData,
-                            group_size:
-                              e
-                                .target
-                                .value,
-                          }
-                        )
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          group_size:
+                            e.target.value,
+                        })
                       }
                     />
                   </Field>
@@ -2096,18 +1723,12 @@ export default function Home() {
                       value={
                         formData.event_date
                       }
-                      onChange={(
-                        e
-                      ) =>
-                        setFormData(
-                          {
-                            ...formData,
-                            event_date:
-                              e
-                                .target
-                                .value,
-                          }
-                        )
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          event_date:
+                            e.target.value,
+                        })
                       }
                     />
                   </Field>
@@ -2121,18 +1742,12 @@ export default function Home() {
                       value={
                         formData.pickup_time
                       }
-                      onChange={(
-                        e
-                      ) =>
-                        setFormData(
-                          {
-                            ...formData,
-                            pickup_time:
-                              e
-                                .target
-                                .value,
-                          }
-                        )
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          pickup_time:
+                            e.target.value,
+                        })
                       }
                     />
                   </Field>
@@ -2146,18 +1761,12 @@ export default function Home() {
                       value={
                         formData.pickup_location
                       }
-                      onChange={(
-                        e
-                      ) =>
-                        setFormData(
-                          {
-                            ...formData,
-                            pickup_location:
-                              e
-                                .target
-                                .value,
-                          }
-                        )
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          pickup_location:
+                            e.target.value,
+                        })
                       }
                     />
                   </Field>
@@ -2170,18 +1779,12 @@ export default function Home() {
                       value={
                         formData.driver
                       }
-                      onChange={(
-                        e
-                      ) =>
-                        setFormData(
-                          {
-                            ...formData,
-                            driver:
-                              e
-                                .target
-                                .value,
-                          }
-                        )
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          driver:
+                            e.target.value,
+                        })
                       }
                     >
                       <option value="">
@@ -2189,20 +1792,12 @@ export default function Home() {
                       </option>
 
                       {DRIVER_OPTIONS.map(
-                        (
-                          driver
-                        ) => (
+                        (driver) => (
                           <option
-                            key={
-                              driver
-                            }
-                            value={
-                              driver
-                            }
+                            key={driver}
+                            value={driver}
                           >
-                            {
-                              driver
-                            }
+                            {driver}
                           </option>
                         )
                       )}
@@ -2218,26 +1813,16 @@ export default function Home() {
                   🚗 Ride TO Event
                 </h3>
 
-                <div
-                  style={
-                    gridStyle
-                  }
-                >
+                <div style={gridStyle}>
                   <Field label="Pricing Type">
                     <select
                       style={
                         inputStyle
                       }
-                      value={
-                        pricingType
-                      }
-                      onChange={(
-                        e
-                      ) =>
+                      value={pricingType}
+                      onChange={(e) =>
                         setPricingType(
-                          e
-                            .target
-                            .value
+                          e.target.value
                         )
                       }
                     >
@@ -2246,8 +1831,7 @@ export default function Home() {
                       </option>
 
                       <option value="flat">
-                        Flat group
-                        price
+                        Flat group price
                       </option>
                     </select>
                   </Field>
@@ -2270,18 +1854,12 @@ export default function Home() {
                       value={
                         formData.to_price
                       }
-                      onChange={(
-                        e
-                      ) =>
-                        setFormData(
-                          {
-                            ...formData,
-                            to_price:
-                              e
-                                .target
-                                .value,
-                          }
-                        )
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          to_price:
+                            e.target.value,
+                        })
                       }
                     />
                   </Field>
@@ -2296,19 +1874,13 @@ export default function Home() {
                           ? "paid"
                           : "unpaid"
                       }
-                      onChange={(
-                        e
-                      ) =>
-                        setFormData(
-                          {
-                            ...formData,
-                            to_paid:
-                              e
-                                .target
-                                .value ===
-                              "paid",
-                          }
-                        )
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          to_paid:
+                            e.target.value ===
+                            "paid",
+                        })
                       }
                     >
                       <option value="unpaid">
@@ -2330,11 +1902,7 @@ export default function Home() {
                   🔁 Return Ride
                 </h3>
 
-                <div
-                  style={
-                    gridStyle
-                  }
-                >
+                <div style={gridStyle}>
                   <Field label="Return Requested">
                     <select
                       style={
@@ -2345,19 +1913,13 @@ export default function Home() {
                           ? "yes"
                           : "no"
                       }
-                      onChange={(
-                        e
-                      ) =>
-                        setFormData(
-                          {
-                            ...formData,
-                            return_requested:
-                              e
-                                .target
-                                .value ===
-                              "yes",
-                          }
-                        )
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          return_requested:
+                            e.target.value ===
+                            "yes",
+                        })
                       }
                     >
                       <option value="no">
@@ -2381,18 +1943,12 @@ export default function Home() {
                           value={
                             formData.return_location
                           }
-                          onChange={(
-                            e
-                          ) =>
-                            setFormData(
-                              {
-                                ...formData,
-                                return_location:
-                                  e
-                                    .target
-                                    .value,
-                              }
-                            )
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              return_location:
+                                e.target.value,
+                            })
                           }
                         />
                       </Field>
@@ -2405,38 +1961,25 @@ export default function Home() {
                           value={
                             formData.return_driver
                           }
-                          onChange={(
-                            e
-                          ) =>
-                            setFormData(
-                              {
-                                ...formData,
-                                return_driver:
-                                  e
-                                    .target
-                                    .value,
-                              }
-                            )
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              return_driver:
+                                e.target.value,
+                            })
                           }
                         >
                           <option value="">
-                            Select
-                            driver
+                            Select driver
                           </option>
 
                           {DRIVER_OPTIONS.map(
-                            (
-                              driver
-                            ) => (
+                            (driver) => (
                               <option
                                 key={`return-${driver}`}
-                                value={
-                                  driver
-                                }
+                                value={driver}
                               >
-                                {
-                                  driver
-                                }
+                                {driver}
                               </option>
                             )
                           )}
@@ -2451,13 +1994,9 @@ export default function Home() {
                           value={
                             returnPricingType
                           }
-                          onChange={(
-                            e
-                          ) =>
+                          onChange={(e) =>
                             setReturnPricingType(
-                              e
-                                .target
-                                .value
+                              e.target.value
                             )
                           }
                         >
@@ -2466,8 +2005,7 @@ export default function Home() {
                           </option>
 
                           <option value="flat">
-                            Flat group
-                            price
+                            Flat group price
                           </option>
                         </select>
                       </Field>
@@ -2490,18 +2028,12 @@ export default function Home() {
                           value={
                             formData.return_price
                           }
-                          onChange={(
-                            e
-                          ) =>
-                            setFormData(
-                              {
-                                ...formData,
-                                return_price:
-                                  e
-                                    .target
-                                    .value,
-                              }
-                            )
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              return_price:
+                                e.target.value,
+                            })
                           }
                         />
                       </Field>
@@ -2516,19 +2048,13 @@ export default function Home() {
                               ? "paid"
                               : "unpaid"
                           }
-                          onChange={(
-                            e
-                          ) =>
-                            setFormData(
-                              {
-                                ...formData,
-                                return_paid:
-                                  e
-                                    .target
-                                    .value ===
-                                  "paid",
-                              }
-                            )
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              return_paid:
+                                e.target.value ===
+                                "paid",
+                            })
                           }
                         >
                           <option value="unpaid">
@@ -2560,18 +2086,12 @@ export default function Home() {
                       value={
                         formData.notes
                       }
-                      onChange={(
-                        e
-                      ) =>
-                        setFormData(
-                          {
-                            ...formData,
-                            notes:
-                              e
-                                .target
-                                .value,
-                          }
-                        )
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          notes:
+                            e.target.value,
+                        })
                       }
                     />
                   </Field>
@@ -2584,9 +2104,7 @@ export default function Home() {
                 >
                   <button
                     type="button"
-                    onClick={
-                      resetForm
-                    }
+                    onClick={resetForm}
                     style={
                       cancelButtonStyle
                     }
@@ -2599,9 +2117,7 @@ export default function Home() {
                     onClick={
                       handleSaveRide
                     }
-                    disabled={
-                      saving
-                    }
+                    disabled={saving}
                     style={{
                       ...saveButtonStyle,
                       opacity:
@@ -2613,8 +2129,8 @@ export default function Home() {
                     {saving
                       ? "Saving..."
                       : editingRideId
-                        ? "Update Booking"
-                        : "Save Ride"}
+                      ? "Update Booking"
+                      : "Save Ride"}
                   </button>
                 </div>
               </section>
@@ -2623,11 +2139,7 @@ export default function Home() {
         )}
 
         {message && (
-          <div
-            style={
-              messageStyle
-            }
-          >
+          <div style={messageStyle}>
             {message}
           </div>
         )}
@@ -2647,16 +2159,8 @@ function ScheduleRideRow({
   deleteRide,
 }) {
   return (
-    <div
-      style={
-        scheduleRowStyle
-      }
-    >
-      <div
-        style={
-          scheduleMainStyle
-        }
-      >
+    <div style={scheduleRowStyle}>
+      <div style={scheduleMainStyle}>
         <div>
           <strong>
             {formatTime(
@@ -2674,8 +2178,7 @@ function ScheduleRideRow({
               mutedTextStyle
             }
           >
-            ×{" "}
-            {ride.group_size}
+            × {ride.group_size}
           </span>
         </div>
 
@@ -2716,9 +2219,7 @@ function ScheduleRideRow({
         <button
           type="button"
           onClick={() =>
-            openEditRide(
-              ride
-            )
+            openEditRide(ride)
           }
           style={
             smallActionButtonStyle
@@ -2730,9 +2231,7 @@ function ScheduleRideRow({
         <button
           type="button"
           onClick={() =>
-            toggleCancelled(
-              ride
-            )
+            toggleCancelled(ride)
           }
           style={
             smallActionButtonStyle
@@ -2744,9 +2243,7 @@ function ScheduleRideRow({
         <button
           type="button"
           onClick={() =>
-            deleteRide(
-              ride
-            )
+            deleteRide(ride)
           }
           style={
             deleteButtonStyle
@@ -2772,11 +2269,7 @@ function ActiveToCard({
   textToImHere,
 }) {
   return (
-    <div
-      style={
-        rideCardStyle
-      }
-    >
+    <div style={rideCardStyle}>
       <div
         style={
           rideCardHeaderStyle
@@ -2793,8 +2286,7 @@ function ActiveToCard({
             }
           >
             {" "}
-            ·{" "}
-            {ride.group_size}{" "}
+            · {ride.group_size}{" "}
             passengers
           </span>
         </div>
@@ -2802,9 +2294,7 @@ function ActiveToCard({
         <button
           type="button"
           onClick={() =>
-            openEditRide(
-              ride
-            )
+            openEditRide(ride)
           }
           style={
             smallActionButtonStyle
@@ -2911,9 +2401,7 @@ function ActiveToCard({
         <button
           type="button"
           onClick={() =>
-            toggleToPaid(
-              ride
-            )
+            toggleToPaid(ride)
           }
           style={
             ride.to_paid
@@ -2935,9 +2423,7 @@ function ActiveToCard({
         <button
           type="button"
           onClick={() =>
-            textToOnMyWay(
-              ride
-            )
+            textToOnMyWay(ride)
           }
           style={
             textMessageButtonStyle
@@ -2949,9 +2435,7 @@ function ActiveToCard({
         <button
           type="button"
           onClick={() =>
-            textToImHere(
-              ride
-            )
+            textToImHere(ride)
           }
           style={
             textMessageButtonStyle
@@ -3003,12 +2487,8 @@ function ActiveToCard({
       >
         Booking Total: $
         {(
-          getToTotal(
-            ride
-          ) +
-          getReturnTotal(
-            ride
-          )
+          getToTotal(ride) +
+          getReturnTotal(ride)
         ).toFixed(2)}
       </div>
     </div>
@@ -3056,8 +2536,7 @@ function ReturnRideCard({
             }
           >
             {" "}
-            ·{" "}
-            {ride.group_size}{" "}
+            · {ride.group_size}{" "}
             passengers
           </span>
         </div>
@@ -3065,9 +2544,7 @@ function ReturnRideCard({
         <button
           type="button"
           onClick={() =>
-            openEditRide(
-              ride
-            )
+            openEditRide(ride)
           }
           style={
             smallActionButtonStyle
@@ -3097,6 +2574,13 @@ function ReturnRideCard({
           )}
         </strong>
       </div>
+
+      {ride.notes && (
+        <div style={returnNoteStyle}>
+          📝 <strong>Note:</strong>{" "}
+          {ride.notes}
+        </div>
+      )}
 
       <div
         style={
@@ -3256,14 +2740,12 @@ function CompletedRideCard({
         <strong>
           {ride.client_name}
         </strong>{" "}
-        ·{" "}
-        {ride.group_size}{" "}
+        · {ride.group_size}{" "}
         passengers
       </div>
 
       <div>
-        🚗 TO: Dropped off
-        ✅
+        🚗 TO: Dropped off ✅
       </div>
 
       <div>
@@ -3304,12 +2786,8 @@ function CompletedRideCard({
       >
         Total: $
         {(
-          getToTotal(
-            ride
-          ) +
-          getReturnTotal(
-            ride
-          )
+          getToTotal(ride) +
+          getReturnTotal(ride)
         ).toFixed(2)}
       </div>
 
@@ -3321,9 +2799,7 @@ function CompletedRideCard({
         <button
           type="button"
           onClick={() =>
-            openEditRide(
-              ride
-            )
+            openEditRide(ride)
           }
           style={
             smallActionButtonStyle
@@ -3335,9 +2811,7 @@ function CompletedRideCard({
         <button
           type="button"
           onClick={() =>
-            deleteRide(
-              ride
-            )
+            deleteRide(ride)
           }
           style={
             deleteButtonStyle
@@ -3356,11 +2830,7 @@ function SummaryBox({
   label,
 }) {
   return (
-    <div
-      style={
-        summaryBoxStyle
-      }
-    >
+    <div style={summaryBoxStyle}>
       <div
         style={{
           fontSize:
@@ -3395,11 +2865,7 @@ function Field({
   children,
 }) {
   return (
-    <label
-      style={
-        fieldStyle
-      }
-    >
+    <label style={fieldStyle}>
       <span
         style={{
           fontWeight:
@@ -3415,639 +2881,429 @@ function Field({
 }
 
 const pageStyle = {
-  minHeight:
-    "100vh",
-  background:
-    "#f5f7fa",
-  fontFamily:
-    "Arial, sans-serif",
-  color:
-    "#172033",
+  minHeight: "100vh",
+  background: "#f5f7fa",
+  fontFamily: "Arial, sans-serif",
+  color: "#172033",
 };
 
 const headerStyle = {
-  background:
-    "#172033",
-  color:
-    "white",
-  padding:
-    "18px 22px",
-  display:
-    "flex",
-  justifyContent:
-    "space-between",
-  alignItems:
-    "center",
-  gap:
-    "15px",
+  background: "#172033",
+  color: "white",
+  padding: "18px 22px",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "15px",
 };
 
 const headerSubtitleStyle = {
-  margin:
-    "6px 0 0",
-  opacity:
-    0.8,
+  margin: "6px 0 0",
+  opacity: 0.8,
 };
 
 const contentStyle = {
-  padding:
-    "20px",
-  maxWidth:
-    "1050px",
-  margin:
-    "auto",
+  padding: "20px",
+  maxWidth: "1050px",
+  margin: "auto",
 };
 
 const welcomeRowStyle = {
-  display:
-    "flex",
-  justifyContent:
-    "space-between",
-  alignItems:
-    "center",
-  gap:
-    "15px",
-  flexWrap:
-    "wrap",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "15px",
+  flexWrap: "wrap",
 };
 
 const summaryGridStyle = {
-  display:
-    "grid",
+  display: "grid",
   gridTemplateColumns:
     "repeat(auto-fit, minmax(140px, 1fr))",
-  gap:
-    "12px",
-  marginTop:
-    "20px",
+  gap: "12px",
+  marginTop: "20px",
 };
 
 const summaryBoxStyle = {
-  background:
-    "white",
-  padding:
-    "15px",
-  borderRadius:
-    "12px",
+  background: "white",
+  padding: "15px",
+  borderRadius: "12px",
   boxShadow:
     "0 2px 8px rgba(0,0,0,0.06)",
-  display:
-    "flex",
-  flexDirection:
-    "column",
-  gap:
-    "4px",
+  display: "flex",
+  flexDirection: "column",
+  gap: "4px",
 };
 
 const sectionStyle = {
-  marginTop:
-    "25px",
-  background:
-    "white",
-  padding:
-    "20px",
-  borderRadius:
-    "12px",
+  marginTop: "25px",
+  background: "white",
+  padding: "20px",
+  borderRadius: "12px",
   boxShadow:
     "0 2px 8px rgba(0,0,0,0.08)",
 };
 
 const completedSectionStyle = {
   ...sectionStyle,
-  marginBottom:
-    "25px",
+  marginBottom: "25px",
 };
 
 const cancelledSectionStyle = {
   ...sectionStyle,
-  marginBottom:
-    "25px",
+  marginBottom: "25px",
 };
 
 const sectionTitleStyle = {
-  marginTop:
-    0,
+  marginTop: 0,
 };
 
 const sectionSubtitleStyle = {
-  marginTop:
-    "-5px",
-  color:
-    "#667085",
-  fontSize:
-    "14px",
+  marginTop: "-5px",
+  color: "#667085",
+  fontSize: "14px",
 };
 
 const daySectionStyle = {
-  marginTop:
-    "14px",
+  marginTop: "14px",
   border:
     "1px solid #e5e7eb",
-  borderRadius:
-    "10px",
-  overflow:
-    "hidden",
+  borderRadius: "10px",
+  overflow: "hidden",
 };
 
 const daySummaryStyle = {
-  padding:
-    "14px",
-  fontWeight:
-    "bold",
-  cursor:
-    "pointer",
-  background:
-    "#f8fafc",
+  padding: "14px",
+  fontWeight: "bold",
+  cursor: "pointer",
+  background: "#f8fafc",
 };
 
 const returnDaySummaryStyle = {
-  padding:
-    "14px",
-  fontWeight:
-    "bold",
-  cursor:
-    "pointer",
-  background:
-    "#eff6ff",
+  padding: "14px",
+  fontWeight: "bold",
+  cursor: "pointer",
+  background: "#eff6ff",
 };
 
 const completedDaySummaryStyle = {
-  padding:
-    "14px",
-  fontWeight:
-    "bold",
-  cursor:
-    "pointer",
-  background:
-    "#f0fdf4",
+  padding: "14px",
+  fontWeight: "bold",
+  cursor: "pointer",
+  background: "#f0fdf4",
 };
 
 const cancelledDaySummaryStyle = {
-  padding:
-    "14px",
-  fontWeight:
-    "bold",
-  cursor:
-    "pointer",
-  background:
-    "#fef2f2",
+  padding: "14px",
+  fontWeight: "bold",
+  cursor: "pointer",
+  background: "#fef2f2",
 };
 
 const scheduleListStyle = {
-  padding:
-    "0 14px",
+  padding: "0 14px",
 };
 
 const scheduleRowStyle = {
-  padding:
-    "12px 0",
+  padding: "12px 0",
   borderBottom:
     "1px solid #e5e7eb",
 };
 
 const scheduleMainStyle = {
-  display:
-    "grid",
+  display: "grid",
   gridTemplateColumns:
     "90px minmax(130px, 1fr) 120px 120px 130px minmax(140px, 1fr)",
-  gap:
-    "8px",
-  alignItems:
-    "center",
-  overflowX:
-    "auto",
-  fontSize:
-    "14px",
+  gap: "8px",
+  alignItems: "center",
+  overflowX: "auto",
+  fontSize: "14px",
 };
 
 const scheduleActionsStyle = {
-  display:
-    "flex",
-  gap:
-    "8px",
-  flexWrap:
-    "wrap",
-  marginTop:
-    "8px",
+  display: "flex",
+  gap: "8px",
+  flexWrap: "wrap",
+  marginTop: "8px",
 };
 
 const dateCardContainerStyle = {
-  padding:
-    "0 14px",
+  padding: "0 14px",
 };
 
 const rideCardStyle = {
-  padding:
-    "16px 0",
+  padding: "16px 0",
   borderBottom:
     "1px solid #e5e7eb",
-  lineHeight:
-    1.7,
+  lineHeight: 1.7,
 };
 
 const returnRideCardStyle = {
-  position:
-    "relative",
-  padding:
-    "18px 0 18px 52px",
+  position: "relative",
+  padding: "18px 0 18px 52px",
   borderBottom:
     "1px solid #e5e7eb",
-  lineHeight:
-    1.7,
+  lineHeight: 1.7,
 };
 
 const returnPriorityStyle = {
-  position:
-    "absolute",
-  top:
-    "18px",
-  left:
-    "0",
-  width:
-    "38px",
-  height:
-    "38px",
-  borderRadius:
-    "50%",
-  background:
-    "#172033",
-  color:
-    "white",
-  display:
-    "flex",
-  alignItems:
-    "center",
-  justifyContent:
-    "center",
-  fontWeight:
-    "bold",
-  fontSize:
-    "14px",
+  position: "absolute",
+  top: "18px",
+  left: "0",
+  width: "38px",
+  height: "38px",
+  borderRadius: "50%",
+  background: "#172033",
+  color: "white",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontWeight: "bold",
+  fontSize: "14px",
+};
+
+const returnNoteStyle = {
+  marginTop: "8px",
+  padding: "10px",
+  borderRadius: "8px",
+  background: "#fff7ed",
+  border: "1px solid #fed7aa",
+  fontSize: "14px",
 };
 
 const completedRideStyle = {
-  padding:
-    "14px 0",
+  padding: "14px 0",
   borderBottom:
     "1px solid #e5e7eb",
-  lineHeight:
-    1.7,
+  lineHeight: 1.7,
 };
 
 const rideCardHeaderStyle = {
-  display:
-    "flex",
-  justifyContent:
-    "space-between",
-  alignItems:
-    "center",
-  gap:
-    "10px",
-  flexWrap:
-    "wrap",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "10px",
+  flexWrap: "wrap",
 };
 
 const actionRowStyle = {
-  display:
-    "flex",
-  gap:
-    "8px",
-  flexWrap:
-    "wrap",
-  marginTop:
-    "10px",
+  display: "flex",
+  gap: "8px",
+  flexWrap: "wrap",
+  marginTop: "10px",
 };
 
 const paymentRowStyle = {
-  display:
-    "flex",
-  gap:
-    "8px",
-  flexWrap:
-    "wrap",
-  marginTop:
-    "10px",
+  display: "flex",
+  gap: "8px",
+  flexWrap: "wrap",
+  marginTop: "10px",
 };
 
 const messageButtonRowStyle = {
-  display:
-    "flex",
-  gap:
-    "8px",
-  flexWrap:
-    "wrap",
-  marginTop:
-    "10px",
+  display: "flex",
+  gap: "8px",
+  flexWrap: "wrap",
+  marginTop: "10px",
 };
 
 const bookingTotalStyle = {
-  fontWeight:
-    "bold",
-  marginTop:
-    "5px",
+  fontWeight: "bold",
+  marginTop: "5px",
 };
 
 const formCardStyle = {
-  background:
-    "white",
-  padding:
-    "20px",
-  marginTop:
-    "25px",
-  borderRadius:
-    "12px",
+  background: "white",
+  padding: "20px",
+  marginTop: "25px",
+  borderRadius: "12px",
   boxShadow:
     "0 2px 8px rgba(0,0,0,0.08)",
 };
 
 const formHeaderStyle = {
-  display:
-    "flex",
-  justifyContent:
-    "space-between",
-  alignItems:
-    "center",
-  gap:
-    "10px",
-  marginBottom:
-    "20px",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "10px",
+  marginBottom: "20px",
 };
 
 const formSectionTitleStyle = {
-  marginTop:
-    "30px",
+  marginTop: "30px",
 };
 
 const gridStyle = {
-  display:
-    "grid",
+  display: "grid",
   gridTemplateColumns:
     "repeat(auto-fit, minmax(220px, 1fr))",
-  gap:
-    "15px",
+  gap: "15px",
 };
 
 const fieldStyle = {
-  display:
-    "flex",
-  flexDirection:
-    "column",
-  gap:
-    "7px",
+  display: "flex",
+  flexDirection: "column",
+  gap: "7px",
 };
 
 const inputStyle = {
-  padding:
-    "12px",
-  borderRadius:
-    "8px",
+  padding: "12px",
+  borderRadius: "8px",
   border:
     "1px solid #cbd5e1",
-  fontSize:
-    "16px",
-  background:
-    "white",
+  fontSize: "16px",
+  background: "white",
 };
 
 const buttonStyle = {
-  width:
-    "100%",
-  padding:
-    "16px",
-  marginTop:
-    "20px",
-  background:
-    "#172033",
-  color:
-    "white",
-  border:
-    "none",
-  borderRadius:
-    "10px",
-  fontSize:
-    "16px",
-  fontWeight:
-    "bold",
-  cursor:
-    "pointer",
+  width: "100%",
+  padding: "16px",
+  marginTop: "20px",
+  background: "#172033",
+  color: "white",
+  border: "none",
+  borderRadius: "10px",
+  fontSize: "16px",
+  fontWeight: "bold",
+  cursor: "pointer",
 };
 
 const newRideButtonStyle = {
-  padding:
-    "12px 18px",
-  background:
-    "#172033",
-  color:
-    "white",
-  border:
-    "none",
-  borderRadius:
-    "10px",
-  fontSize:
-    "15px",
-  fontWeight:
-    "bold",
-  cursor:
-    "pointer",
+  padding: "12px 18px",
+  background: "#172033",
+  color: "white",
+  border: "none",
+  borderRadius: "10px",
+  fontSize: "15px",
+  fontWeight: "bold",
+  cursor: "pointer",
 };
 
 const saveButtonStyle = {
-  padding:
-    "14px 18px",
-  background:
-    "#1f7a4d",
-  color:
-    "white",
-  border:
-    "none",
-  borderRadius:
-    "10px",
-  fontSize:
-    "16px",
-  fontWeight:
-    "bold",
-  cursor:
-    "pointer",
-  flex:
-    1,
+  padding: "14px 18px",
+  background: "#1f7a4d",
+  color: "white",
+  border: "none",
+  borderRadius: "10px",
+  fontSize: "16px",
+  fontWeight: "bold",
+  cursor: "pointer",
+  flex: 1,
 };
 
 const cancelButtonStyle = {
-  padding:
-    "14px 18px",
-  background:
-    "white",
-  color:
-    "#172033",
+  padding: "14px 18px",
+  background: "white",
+  color: "#172033",
   border:
     "1px solid #cbd5e1",
-  borderRadius:
-    "10px",
-  fontSize:
-    "16px",
-  fontWeight:
-    "bold",
-  cursor:
-    "pointer",
+  borderRadius: "10px",
+  fontSize: "16px",
+  fontWeight: "bold",
+  cursor: "pointer",
 };
 
 const formActionRowStyle = {
-  display:
-    "flex",
-  gap:
-    "10px",
-  marginTop:
-    "20px",
+  display: "flex",
+  gap: "10px",
+  marginTop: "20px",
 };
 
 const statusButtonStyle = {
-  padding:
-    "10px 12px",
-  borderRadius:
-    "8px",
+  padding: "10px 12px",
+  borderRadius: "8px",
   border:
     "1px solid #cbd5e1",
-  background:
-    "white",
-  fontSize:
-    "14px",
-  fontWeight:
-    "bold",
-  cursor:
-    "pointer",
+  background: "white",
+  fontSize: "14px",
+  fontWeight: "bold",
+  cursor: "pointer",
 };
 
 const unpaidButtonStyle = {
-  padding:
-    "10px 12px",
-  borderRadius:
-    "8px",
+  padding: "10px 12px",
+  borderRadius: "8px",
   border:
     "1px solid #16a34a",
-  background:
-    "#f0fdf4",
-  color:
-    "#166534",
-  fontSize:
-    "14px",
-  fontWeight:
-    "bold",
-  cursor:
-    "pointer",
+  background: "#f0fdf4",
+  color: "#166534",
+  fontSize: "14px",
+  fontWeight: "bold",
+  cursor: "pointer",
 };
 
 const paidButtonStyle = {
-  padding:
-    "10px 12px",
-  borderRadius:
-    "8px",
+  padding: "10px 12px",
+  borderRadius: "8px",
   border:
     "1px solid #86efac",
-  background:
-    "#dcfce7",
-  color:
-    "#166534",
-  fontSize:
-    "14px",
-  fontWeight:
-    "bold",
-  cursor:
-    "pointer",
+  background: "#dcfce7",
+  color: "#166534",
+  fontSize: "14px",
+  fontWeight: "bold",
+  cursor: "pointer",
 };
 
 const textMessageButtonStyle = {
-  padding:
-    "10px 12px",
-  borderRadius:
-    "8px",
+  padding: "10px 12px",
+  borderRadius: "8px",
   border:
     "1px solid #94a3b8",
-  background:
-    "#f8fafc",
-  fontSize:
-    "14px",
-  fontWeight:
-    "bold",
-  cursor:
-    "pointer",
+  background: "#f8fafc",
+  fontSize: "14px",
+  fontWeight: "bold",
+  cursor: "pointer",
 };
 
 const smallActionButtonStyle = {
-  padding:
-    "7px 10px",
-  borderRadius:
-    "7px",
+  padding: "7px 10px",
+  borderRadius: "7px",
   border:
     "1px solid #cbd5e1",
-  background:
-    "white",
-  fontSize:
-    "13px",
-  fontWeight:
-    "bold",
-  cursor:
-    "pointer",
+  background: "white",
+  fontSize: "13px",
+  fontWeight: "bold",
+  cursor: "pointer",
 };
 
 const deleteButtonStyle = {
-  padding:
-    "7px 10px",
-  borderRadius:
-    "7px",
+  padding: "7px 10px",
+  borderRadius: "7px",
   border:
     "1px solid #ef4444",
-  background:
-    "white",
-  color:
-    "#b91c1c",
-  fontSize:
-    "13px",
-  fontWeight:
-    "bold",
-  cursor:
-    "pointer",
+  background: "white",
+  color: "#b91c1c",
+  fontSize: "13px",
+  fontWeight: "bold",
+  cursor: "pointer",
 };
 
 const closeButtonStyle = {
-  border:
-    "none",
-  background:
-    "transparent",
-  fontSize:
-    "22px",
-  cursor:
-    "pointer",
+  border: "none",
+  background: "transparent",
+  fontSize: "22px",
+  cursor: "pointer",
 };
 
 const logoutButtonStyle = {
-  padding:
-    "8px 12px",
-  borderRadius:
-    "8px",
+  padding: "8px 12px",
+  borderRadius: "8px",
   border:
     "1px solid rgba(255,255,255,0.35)",
-  background:
-    "transparent",
-  color:
-    "white",
-  cursor:
-    "pointer",
+  background: "transparent",
+  color: "white",
+  cursor: "pointer",
 };
 
 const messageStyle = {
-  marginTop:
-    "20px",
-  padding:
-    "15px",
-  background:
-    "white",
-  borderRadius:
-    "10px",
+  marginTop: "20px",
+  padding: "15px",
+  background: "white",
+  borderRadius: "10px",
   border:
     "1px solid #cbd5e1",
 };
 
 const mutedTextStyle = {
-  color:
-    "#667085",
+  color: "#667085",
 };
