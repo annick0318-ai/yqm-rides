@@ -32,27 +32,38 @@ export default function Home() {
   const [showForm, setShowForm] = useState(false);
   const [editingRideId, setEditingRideId] = useState(null);
 
-  const [pricingType, setPricingType] = useState("per_person");
+  const [pricingType, setPricingType] =
+    useState("per_person");
+
   const [returnPricingType, setReturnPricingType] =
     useState("per_person");
 
-  const [formData, setFormData] = useState(emptyForm);
+  const [formData, setFormData] =
+    useState(emptyForm);
 
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loggedIn, setLoggedIn] = useState(false);
+  const [password, setPassword] =
+    useState("");
+
+  const [loggedIn, setLoggedIn] =
+    useState(false);
 
   const [rides, setRides] = useState([]);
-  const [loadingRides, setLoadingRides] = useState(false);
+  const [loadingRides, setLoadingRides] =
+    useState(false);
 
-  const [message, setMessage] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [message, setMessage] =
+    useState("");
+
+  const [saving, setSaving] =
+    useState(false);
 
   useEffect(() => {
     async function restoreSession() {
       const {
         data: { session },
-      } = await supabase.auth.getSession();
+      } =
+        await supabase.auth.getSession();
 
       if (session) {
         setLoggedIn(true);
@@ -66,14 +77,23 @@ export default function Home() {
   async function loadRides() {
     setLoadingRides(true);
 
-    const { data, error } = await supabase
-      .from("Bookings")
-      .select("*")
-      .order("event_date", { ascending: true })
-      .order("pickup_time", { ascending: true });
+    const { data, error } =
+      await supabase
+        .from("Bookings")
+        .select("*")
+        .order("event_date", {
+          ascending: true,
+        })
+        .order("pickup_time", {
+          ascending: true,
+        });
 
     if (error) {
-      setMessage("Could not load rides: " + error.message);
+      setMessage(
+        "Could not load rides: " +
+          error.message
+      );
+
       setLoadingRides(false);
       return;
     }
@@ -85,18 +105,22 @@ export default function Home() {
   async function handleLogin() {
     setMessage("Signing in...");
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { error } =
+      await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
     if (error) {
-      setMessage("Login failed: " + error.message);
+      setMessage(
+        "Login failed: " + error.message
+      );
       return;
     }
 
     setLoggedIn(true);
     setMessage("");
+
     await loadRides();
   }
 
@@ -121,10 +145,12 @@ export default function Home() {
     setShowForm(true);
 
     setTimeout(() => {
-      document.getElementById("booking-form")?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
+      document
+        .getElementById("booking-form")
+        ?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
     }, 100);
   }
 
@@ -132,123 +158,143 @@ export default function Home() {
     setEditingRideId(ride.id);
 
     setFormData({
-      client_name: ride.client_name || "",
-      phone: ride.phone || "",
-      group_size: ride.group_size || "",
-      event_date: ride.event_date || "",
-      pickup_time: ride.pickup_time || "",
-      pickup_location: ride.pickup_location || "",
-      driver: ride.to_driver || "",
-      to_price: ride.to_price ?? "",
-      to_paid: Boolean(ride.to_paid),
-      return_requested: Boolean(ride.return_requested),
-      return_location: ride.return_location || "",
-      return_driver: ride.return_driver || "",
-      return_price: ride.return_price ?? "",
-      return_paid: Boolean(ride.return_paid),
-      notes: ride.notes || "",
+      client_name:
+        ride.client_name || "",
+      phone:
+        ride.phone || "",
+      group_size:
+        ride.group_size || "",
+      event_date:
+        ride.event_date || "",
+      pickup_time:
+        ride.pickup_time || "",
+      pickup_location:
+        ride.pickup_location || "",
+      driver:
+        ride.to_driver || "",
+      to_price:
+        ride.to_price ?? "",
+      to_paid:
+        Boolean(ride.to_paid),
+
+      return_requested:
+        Boolean(
+          ride.return_requested
+        ),
+
+      return_location:
+        ride.return_location || "",
+
+      return_driver:
+        ride.return_driver || "",
+
+      return_price:
+        ride.return_price ?? "",
+
+      return_paid:
+        Boolean(
+          ride.return_paid
+        ),
+
+      notes:
+        ride.notes || "",
     });
 
-    setPricingType(ride.to_price_type || "per_person");
+    setPricingType(
+      ride.to_price_type ||
+        "per_person"
+    );
+
     setReturnPricingType(
-      ride.return_price_type || "per_person"
+      ride.return_price_type ||
+        "per_person"
     );
 
     setShowForm(true);
 
     setTimeout(() => {
-      document.getElementById("booking-form")?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
+      document
+        .getElementById("booking-form")
+        ?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
     }, 100);
   }
 
-  function firstName(name) {
-    if (!name) return "";
-    return name.trim().split(" ")[0];
-  }
+  async function getNextReturnQueuePosition(
+    eventDate,
+    excludeRideId = null
+  ) {
+    const { data, error } =
+      await supabase
+        .from("Bookings")
+        .select(
+          "id, return_queue_position"
+        )
+        .eq(
+          "event_date",
+          eventDate
+        )
+        .eq(
+          "return_requested",
+          true
+        );
 
-  function openTextMessage(phone, text) {
-    if (!phone) {
-      setMessage("No phone number is saved for this client.");
-      return;
+    if (error) {
+      throw error;
     }
 
-    const cleanPhone = phone.replace(/[^\d+]/g, "");
+    const positions = (
+      data || []
+    )
+      .filter(
+        (ride) =>
+          excludeRideId === null ||
+          String(ride.id) !==
+            String(excludeRideId)
+      )
+      .map((ride) =>
+        Number(
+          ride.return_queue_position
+        )
+      )
+      .filter((position) =>
+        Number.isFinite(position)
+      );
 
-    if (!cleanPhone) {
-      setMessage("This client does not have a valid phone number.");
-      return;
+    if (
+      positions.length === 0
+    ) {
+      return 1;
     }
 
-    const encodedMessage = encodeURIComponent(text);
-
-    window.location.href =
-      `sms:${cleanPhone}&body=${encodedMessage}`;
-  }
-
-  function textToOnMyWay(ride) {
-    const name = firstName(ride.client_name);
-    const driver =
-      ride.to_driver || "Your YQM Rides driver";
-
-    const location = ride.pickup_location
-      ? ` at ${ride.pickup_location}`
-      : "";
-
-    openTextMessage(
-      ride.phone,
-      `Hi ${name}! ${driver} from YQM Rides here 🚗 I’m on my way to pick you up now${location}. See you shortly!`
-    );
-  }
-
-  function textToImHere(ride) {
-    const name = firstName(ride.client_name);
-    const driver =
-      ride.to_driver || "Your YQM Rides driver";
-
-    openTextMessage(
-      ride.phone,
-      `Hi ${name}! ${driver} from YQM Rides here 😊 I’m at your pickup location now!`
-    );
-  }
-
-  function textReturnOnMyWay(ride) {
-    const name = firstName(ride.client_name);
-    const driver =
-      ride.return_driver || "Your YQM Rides driver";
-
-    openTextMessage(
-      ride.phone,
-      `Hi ${name}! ${driver} from YQM Rides here 🚗 I’m heading back to YQM now for your return ride. I’ll see you shortly!`
-    );
-  }
-
-  function textReturnImHere(ride) {
-    const name = firstName(ride.client_name);
-    const driver =
-      ride.return_driver || "Your YQM Rides driver";
-
-    openTextMessage(
-      ride.phone,
-      `Hi ${name}! ${driver} from YQM Rides here 🚗 I’m back at YQM and ready for your return pickup!`
+    return (
+      Math.max(...positions) + 1
     );
   }
 
   async function handleSaveRide() {
-    if (!formData.client_name.trim()) {
-      setMessage("Please enter the client / group name.");
+    if (
+      !formData.client_name.trim()
+    ) {
+      setMessage(
+        "Please enter the client / group name."
+      );
       return;
     }
 
     if (!formData.group_size) {
-      setMessage("Please enter the group size.");
+      setMessage(
+        "Please enter the group size."
+      );
       return;
     }
 
     if (!formData.event_date) {
-      setMessage("Please choose a date.");
+      setMessage(
+        "Please choose a date."
+      );
       return;
     }
 
@@ -260,83 +306,205 @@ export default function Home() {
         : "Saving ride..."
     );
 
-    const booking = {
-      client_name: formData.client_name.trim(),
-      phone: formData.phone || null,
-      group_size: Number(formData.group_size),
-      event_date: formData.event_date,
-      pickup_time: formData.pickup_time || null,
-      pickup_location: formData.pickup_location || null,
+    let existingRide = null;
 
-      to_driver: formData.driver || null,
-      to_price_type: pricingType,
+    if (editingRideId) {
+      const {
+        data,
+        error:
+          existingRideError,
+      } =
+        await supabase
+          .from("Bookings")
+          .select("*")
+          .eq(
+            "id",
+            editingRideId
+          )
+          .single();
+
+      if (existingRideError) {
+        setMessage(
+          "Could not load the existing booking: " +
+            existingRideError.message
+        );
+
+        setSaving(false);
+        return;
+      }
+
+      existingRide = data;
+    }
+
+    let returnQueuePosition =
+      null;
+
+    let returnStatus = null;
+
+    if (
+      formData.return_requested
+    ) {
+      const canKeepPriority =
+        existingRide &&
+        existingRide.return_requested &&
+        existingRide.event_date ===
+          formData.event_date &&
+        existingRide.return_queue_position !==
+          null;
+
+      if (canKeepPriority) {
+        returnQueuePosition =
+          existingRide.return_queue_position;
+
+        returnStatus =
+          existingRide.return_status ||
+          "waiting";
+      } else {
+        try {
+          returnQueuePosition =
+            await getNextReturnQueuePosition(
+              formData.event_date,
+              editingRideId
+            );
+
+          returnStatus =
+            "waiting";
+        } catch (error) {
+          setMessage(
+            "Could not assign return priority: " +
+              error.message
+          );
+
+          setSaving(false);
+          return;
+        }
+      }
+    }
+
+    const booking = {
+      client_name:
+        formData.client_name.trim(),
+
+      phone:
+        formData.phone || null,
+
+      group_size:
+        Number(
+          formData.group_size
+        ),
+
+      event_date:
+        formData.event_date,
+
+      pickup_time:
+        formData.pickup_time ||
+        null,
+
+      pickup_location:
+        formData.pickup_location ||
+        null,
+
+      to_driver:
+        formData.driver || null,
+
+      to_price_type:
+        pricingType,
+
       to_price:
         formData.to_price === ""
           ? null
-          : Number(formData.to_price),
+          : Number(
+              formData.to_price
+            ),
 
-      to_paid: formData.to_paid,
+      to_paid:
+        formData.to_paid,
 
-      return_requested: formData.return_requested,
+      return_requested:
+        formData.return_requested,
 
-      return_location: formData.return_requested
-        ? formData.return_location || null
-        : null,
+      return_location:
+        formData.return_requested
+          ? formData.return_location ||
+            null
+          : null,
 
-      return_driver: formData.return_requested
-        ? formData.return_driver || null
-        : null,
+      return_driver:
+        formData.return_requested
+          ? formData.return_driver ||
+            null
+          : null,
 
-      return_price_type: formData.return_requested
-        ? returnPricingType
-        : null,
+      return_price_type:
+        formData.return_requested
+          ? returnPricingType
+          : null,
 
       return_price:
         formData.return_requested &&
         formData.return_price !== ""
-          ? Number(formData.return_price)
+          ? Number(
+              formData.return_price
+            )
           : null,
 
-      return_paid: formData.return_requested
-        ? formData.return_paid
-        : false,
+      return_paid:
+        formData.return_requested
+          ? formData.return_paid
+          : false,
 
-      notes: formData.notes || null,
-      event_name: "YQM Country Fest",
+      return_status:
+        returnStatus,
+
+      return_queue_position:
+        returnQueuePosition,
+
+      notes:
+        formData.notes ||
+        null,
+
+      event_name:
+        "YQM Country Fest",
     };
 
     let error;
 
     if (editingRideId) {
-      const result = await supabase
-        .from("Bookings")
-        .update(booking)
-        .eq("id", editingRideId);
+      const result =
+        await supabase
+          .from("Bookings")
+          .update(booking)
+          .eq(
+            "id",
+            editingRideId
+          );
 
-      error = result.error;
+      error =
+        result.error;
     } else {
-      const result = await supabase
-        .from("Bookings")
-        .insert([
-          {
-            ...booking,
-            to_status: "upcoming",
-            return_status:
-              formData.return_requested
-                ? "waiting"
-                : null,
-            return_queue_position: null,
-            cancelled: false,
-          },
-        ]);
+      const result =
+        await supabase
+          .from("Bookings")
+          .insert([
+            {
+              ...booking,
+              to_status:
+                "upcoming",
+              cancelled:
+                false,
+            },
+          ]);
 
-      error = result.error;
+      error =
+        result.error;
     }
 
     if (error) {
       setMessage(
-        "Could not save ride: " + error.message
+        "Could not save ride: " +
+          error.message
       );
+
       setSaving(false);
       return;
     }
@@ -348,15 +516,26 @@ export default function Home() {
     );
 
     await loadRides();
+
     resetForm();
     setSaving(false);
   }
 
-  async function updateRideStatus(rideId, newStatus) {
-    const { error } = await supabase
-      .from("Bookings")
-      .update({ to_status: newStatus })
-      .eq("id", rideId);
+  async function updateRideStatus(
+    rideId,
+    newStatus
+  ) {
+    const { error } =
+      await supabase
+        .from("Bookings")
+        .update({
+          to_status:
+            newStatus,
+        })
+        .eq(
+          "id",
+          rideId
+        );
 
     if (error) {
       setMessage(
@@ -373,10 +552,17 @@ export default function Home() {
     rideId,
     newStatus
   ) {
-    const { error } = await supabase
-      .from("Bookings")
-      .update({ return_status: newStatus })
-      .eq("id", rideId);
+    const { error } =
+      await supabase
+        .from("Bookings")
+        .update({
+          return_status:
+            newStatus,
+        })
+        .eq(
+          "id",
+          rideId
+        );
 
     if (error) {
       setMessage(
@@ -389,15 +575,23 @@ export default function Home() {
     await loadRides();
   }
 
-  async function toggleToPaid(ride) {
-    const newPaidStatus = !ride.to_paid;
+  async function toggleToPaid(
+    ride
+  ) {
+    const newPaidStatus =
+      !ride.to_paid;
 
-    const { error } = await supabase
-      .from("Bookings")
-      .update({
-        to_paid: newPaidStatus,
-      })
-      .eq("id", ride.id);
+    const { error } =
+      await supabase
+        .from("Bookings")
+        .update({
+          to_paid:
+            newPaidStatus,
+        })
+        .eq(
+          "id",
+          ride.id
+        );
 
     if (error) {
       setMessage(
@@ -416,15 +610,23 @@ export default function Home() {
     await loadRides();
   }
 
-  async function toggleReturnPaid(ride) {
-    const newPaidStatus = !ride.return_paid;
+  async function toggleReturnPaid(
+    ride
+  ) {
+    const newPaidStatus =
+      !ride.return_paid;
 
-    const { error } = await supabase
-      .from("Bookings")
-      .update({
-        return_paid: newPaidStatus,
-      })
-      .eq("id", ride.id);
+    const { error } =
+      await supabase
+        .from("Bookings")
+        .update({
+          return_paid:
+            newPaidStatus,
+        })
+        .eq(
+          "id",
+          ride.id
+        );
 
     if (error) {
       setMessage(
@@ -443,13 +645,20 @@ export default function Home() {
     await loadRides();
   }
 
-  async function toggleCancelled(ride) {
-    const { error } = await supabase
-      .from("Bookings")
-      .update({
-        cancelled: !ride.cancelled,
-      })
-      .eq("id", ride.id);
+  async function toggleCancelled(
+    ride
+  ) {
+    const { error } =
+      await supabase
+        .from("Bookings")
+        .update({
+          cancelled:
+            !ride.cancelled,
+        })
+        .eq(
+          "id",
+          ride.id
+        );
 
     if (error) {
       setMessage(
@@ -462,19 +671,26 @@ export default function Home() {
     await loadRides();
   }
 
-  async function deleteRide(ride) {
-    const confirmed = window.confirm(
-      `Permanently delete ${ride.client_name}'s booking?\n\nThis cannot be undone.`
-    );
+  async function deleteRide(
+    ride
+  ) {
+    const confirmed =
+      window.confirm(
+        `Permanently delete ${ride.client_name}'s booking?\n\nThis cannot be undone.`
+      );
 
     if (!confirmed) {
       return;
     }
 
-    const { error } = await supabase
-      .from("Bookings")
-      .delete()
-      .eq("id", ride.id);
+    const { error } =
+      await supabase
+        .from("Bookings")
+        .delete()
+        .eq(
+          "id",
+          ride.id
+        );
 
     if (error) {
       setMessage(
@@ -484,7 +700,10 @@ export default function Home() {
       return;
     }
 
-    if (editingRideId === ride.id) {
+    if (
+      editingRideId ===
+      ride.id
+    ) {
       resetForm();
     }
 
@@ -495,202 +714,506 @@ export default function Home() {
     await loadRides();
   }
 
-  function getToTotal(ride) {
-    if (ride.to_price_type === "per_person") {
-      return (
-        Number(ride.to_price || 0) *
-        Number(ride.group_size || 0)
-      );
-    }
+  function firstName(name) {
+    if (!name) return "";
 
-    return Number(ride.to_price || 0);
+    return name
+      .trim()
+      .split(" ")[0];
   }
 
-  function getReturnTotal(ride) {
-    if (!ride.return_requested) return 0;
+  function openTextMessage(
+    phone,
+    text
+  ) {
+    if (!phone) {
+      setMessage(
+        "No phone number is saved for this client."
+      );
+      return;
+    }
 
+    const cleanPhone =
+      phone.replace(
+        /[^\d+]/g,
+        ""
+      );
+
+    if (!cleanPhone) {
+      setMessage(
+        "This client does not have a valid phone number."
+      );
+      return;
+    }
+
+    const encodedMessage =
+      encodeURIComponent(text);
+
+    window.location.href =
+      `sms:${cleanPhone}&body=${encodedMessage}`;
+  }
+
+  function textToOnMyWay(
+    ride
+  ) {
+    const name =
+      firstName(
+        ride.client_name
+      );
+
+    const driver =
+      ride.to_driver ||
+      "Your YQM Rides driver";
+
+    const location =
+      ride.pickup_location
+        ? ` at ${ride.pickup_location}`
+        : "";
+
+    openTextMessage(
+      ride.phone,
+      `Hi ${name}! ${driver} from YQM Rides here 🚗 I’m on my way to pick you up now${location}. See you shortly!`
+    );
+  }
+
+  function textToImHere(
+    ride
+  ) {
+    const name =
+      firstName(
+        ride.client_name
+      );
+
+    const driver =
+      ride.to_driver ||
+      "Your YQM Rides driver";
+
+    openTextMessage(
+      ride.phone,
+      `Hi ${name}! ${driver} from YQM Rides here 😊 I’m at your pickup location now!`
+    );
+  }
+
+  function textReturnOnMyWay(
+    ride
+  ) {
+    const name =
+      firstName(
+        ride.client_name
+      );
+
+    const driver =
+      ride.return_driver ||
+      "Your YQM Rides driver";
+
+    openTextMessage(
+      ride.phone,
+      `Hi ${name}! ${driver} from YQM Rides here 🚗 I’m heading back to YQM now for your return ride. I’ll see you shortly!`
+    );
+  }
+
+  function textReturnImHere(
+    ride
+  ) {
+    const name =
+      firstName(
+        ride.client_name
+      );
+
+    const driver =
+      ride.return_driver ||
+      "Your YQM Rides driver";
+
+    openTextMessage(
+      ride.phone,
+      `Hi ${name}! ${driver} from YQM Rides here 🚗 I’m back at YQM and ready for your return pickup!`
+    );
+  }
+
+  function getToTotal(
+    ride
+  ) {
     if (
-      ride.return_price_type === "per_person"
+      ride.to_price_type ===
+      "per_person"
     ) {
       return (
-        Number(ride.return_price || 0) *
-        Number(ride.group_size || 0)
+        Number(
+          ride.to_price || 0
+        ) *
+        Number(
+          ride.group_size || 0
+        )
       );
     }
 
-    return Number(ride.return_price || 0);
+    return Number(
+      ride.to_price || 0
+    );
   }
 
-  function formatTime(time) {
-    if (!time) return "No time";
+  function getReturnTotal(
+    ride
+  ) {
+    if (
+      !ride.return_requested
+    ) {
+      return 0;
+    }
 
-    const [hourString, minute] =
+    if (
+      ride.return_price_type ===
+      "per_person"
+    ) {
+      return (
+        Number(
+          ride.return_price || 0
+        ) *
+        Number(
+          ride.group_size || 0
+        )
+      );
+    }
+
+    return Number(
+      ride.return_price || 0
+    );
+  }
+
+  function formatTime(
+    time
+  ) {
+    if (!time) {
+      return "No time";
+    }
+
+    const [
+      hourString,
+      minute,
+    ] =
       time.split(":");
 
-    const hour = Number(hourString);
-    const suffix = hour >= 12 ? "PM" : "AM";
-    const normalHour = hour % 12 || 12;
+    const hour =
+      Number(hourString);
+
+    const suffix =
+      hour >= 12
+        ? "PM"
+        : "AM";
+
+    const normalHour =
+      hour % 12 || 12;
 
     return `${normalHour}:${minute} ${suffix}`;
   }
 
-  function formatDate(date) {
-    if (!date) return "No date";
+  function formatDate(
+    date
+  ) {
+    if (!date) {
+      return "No date";
+    }
 
     return new Date(
       `${date}T12:00:00`
-    ).toLocaleDateString("en-CA", {
-      weekday: "long",
-      month: "long",
-      day: "numeric",
-    });
+    ).toLocaleDateString(
+      "en-CA",
+      {
+        weekday:
+          "long",
+        month:
+          "long",
+        day:
+          "numeric",
+      }
+    );
   }
 
-  function toStatusText(status) {
-    if (status === "on_my_way")
+  function toStatusText(
+    status
+  ) {
+    if (
+      status ===
+      "on_my_way"
+    ) {
       return "On my way 🚗";
+    }
 
-    if (status === "picked_up")
+    if (
+      status ===
+      "picked_up"
+    ) {
       return "Picked up 👥";
+    }
 
-    if (status === "completed")
+    if (
+      status ===
+      "completed"
+    ) {
       return "Dropped off ✅";
+    }
 
     return "Upcoming 🕐";
   }
 
-  function returnStatusText(status) {
-    if (status === "on_my_way")
+  function returnStatusText(
+    status
+  ) {
+    if (
+      status ===
+      "on_my_way"
+    ) {
       return "On my way 🚗";
+    }
 
-    if (status === "picked_up")
+    if (
+      status ===
+      "picked_up"
+    ) {
       return "Picked up 👥";
+    }
 
-    if (status === "completed")
+    if (
+      status ===
+      "completed"
+    ) {
       return "Returned home ✅";
+    }
 
     return "Waiting ⏳";
   }
 
-  function scheduleReturnText(ride) {
-    if (!ride.return_requested) {
+  function scheduleReturnText(
+    ride
+  ) {
+    if (
+      !ride.return_requested
+    ) {
       return "—";
     }
 
-    if (ride.return_status === "completed") {
+    if (
+      ride.return_status ===
+      "completed"
+    ) {
       return "✅ Return complete";
     }
 
-    if (ride.return_status === "picked_up") {
+    if (
+      ride.return_status ===
+      "picked_up"
+    ) {
       return "🔁 Picked up 👥";
     }
 
-    if (ride.return_status === "on_my_way") {
+    if (
+      ride.return_status ===
+      "on_my_way"
+    ) {
       return "🔁 On my way 🚗";
     }
 
     return "🔁 Return waiting";
   }
 
-  function isFullyCompleted(ride) {
+  function isFullyCompleted(
+    ride
+  ) {
     const toComplete =
-      ride.to_status === "completed";
+      ride.to_status ===
+      "completed";
 
     if (!toComplete) {
       return false;
     }
 
-    if (!ride.return_requested) {
+    if (
+      !ride.return_requested
+    ) {
       return true;
     }
 
-    return ride.return_status === "completed";
+    return (
+      ride.return_status ===
+      "completed"
+    );
   }
 
-  function getDatesForRides(list) {
+  function getDatesForRides(
+    list
+  ) {
     return [
       ...new Set(
         list
-          .map((ride) => ride.event_date)
+          .map(
+            (ride) =>
+              ride.event_date
+          )
           .filter(Boolean)
       ),
     ].sort();
   }
 
-  function ridesForDate(list, date) {
+  function ridesForDate(
+    list,
+    date
+  ) {
     return list
       .filter(
-        (ride) => ride.event_date === date
+        (ride) =>
+          ride.event_date ===
+          date
       )
       .sort((a, b) =>
-        (a.pickup_time || "").localeCompare(
+        (
+          a.pickup_time || ""
+        ).localeCompare(
           b.pickup_time || ""
         )
       );
   }
 
-  const validRides = rides.filter(
-    (ride) => !ride.cancelled
-  );
+  function returnRidesForDate(
+    list,
+    date
+  ) {
+    return list
+      .filter(
+        (ride) =>
+          ride.event_date ===
+          date
+      )
+      .sort((a, b) => {
+        const aPosition =
+          Number(
+            a.return_queue_position
+          );
 
-  const weekendSchedule = validRides.filter(
-    (ride) => !isFullyCompleted(ride)
-  );
+        const bPosition =
+          Number(
+            b.return_queue_position
+          );
 
-  const activeToRides = validRides.filter(
-    (ride) =>
-      ride.to_status !== "completed"
-  );
+        const safeA =
+          Number.isFinite(
+            aPosition
+          )
+            ? aPosition
+            : 999999;
 
-  const returnQueue = validRides.filter(
-    (ride) =>
-      ride.to_status === "completed" &&
-      ride.return_requested &&
-      ride.return_status !== "completed"
-  );
+        const safeB =
+          Number.isFinite(
+            bPosition
+          )
+            ? bPosition
+            : 999999;
 
-  const completedRides = validRides.filter(
-    (ride) => isFullyCompleted(ride)
-  );
+        return (
+          safeA - safeB
+        );
+      });
+  }
 
-  const expectedTotal = validRides.reduce(
-    (sum, ride) =>
-      sum +
-      getToTotal(ride) +
-      getReturnTotal(ride),
-    0
-  );
+  const validRides =
+    rides.filter(
+      (ride) =>
+        !ride.cancelled
+    );
 
-  const collectedTotal = validRides.reduce(
-    (sum, ride) => {
-      const toCollected = ride.to_paid
-        ? getToTotal(ride)
-        : 0;
+  const cancelledRides =
+    rides.filter(
+      (ride) =>
+        ride.cancelled
+    );
 
-      const returnCollected =
+  const weekendSchedule =
+    validRides.filter(
+      (ride) =>
+        !isFullyCompleted(
+          ride
+        )
+    );
+
+  const activeToRides =
+    validRides.filter(
+      (ride) =>
+        ride.to_status !==
+        "completed"
+    );
+
+  const returnQueue =
+    validRides.filter(
+      (ride) =>
+        ride.to_status ===
+          "completed" &&
         ride.return_requested &&
-        ride.return_paid
-          ? getReturnTotal(ride)
-          : 0;
+        ride.return_status !==
+          "completed"
+    );
 
-      return (
+  const completedRides =
+    validRides.filter(
+      (ride) =>
+        isFullyCompleted(
+          ride
+        )
+    );
+
+  const expectedTotal =
+    validRides.reduce(
+      (sum, ride) =>
         sum +
-        toCollected +
-        returnCollected
-      );
-    },
-    0
-  );
+        getToTotal(ride) +
+        getReturnTotal(ride),
+      0
+    );
+
+  const collectedTotal =
+    validRides.reduce(
+      (sum, ride) => {
+        const toCollected =
+          ride.to_paid
+            ? getToTotal(
+                ride
+              )
+            : 0;
+
+        const returnCollected =
+          ride.return_requested &&
+          ride.return_paid
+            ? getReturnTotal(
+                ride
+              )
+            : 0;
+
+        return (
+          sum +
+          toCollected +
+          returnCollected
+        );
+      },
+      0
+    );
 
   return (
     <main style={pageStyle}>
-      <header style={headerStyle}>
+      <header
+        style={headerStyle}
+      >
         <div>
-          <h1 style={{ margin: 0 }}>
+          <h1
+            style={{
+              margin: 0,
+            }}
+          >
             YQM Rides
           </h1>
 
-          <p style={headerSubtitleStyle}>
+          <p
+            style={
+              headerSubtitleStyle
+            }
+          >
             Ride Dispatch
           </p>
         </div>
@@ -698,45 +1221,84 @@ export default function Home() {
         {loggedIn && (
           <button
             type="button"
-            onClick={handleLogout}
-            style={logoutButtonStyle}
+            onClick={
+              handleLogout
+            }
+            style={
+              logoutButtonStyle
+            }
           >
             Log out
           </button>
         )}
       </header>
 
-      <div style={contentStyle}>
+      <div
+        style={
+          contentStyle
+        }
+      >
         {!loggedIn && (
-          <div style={formCardStyle}>
-            <h2 style={{ marginTop: 0 }}>
+          <div
+            style={
+              formCardStyle
+            }
+          >
+            <h2
+              style={{
+                marginTop: 0,
+              }}
+            >
               Driver Login 🔐
             </h2>
 
             <p>
-              Sign in with your YQM Rides
-              driver account.
+              Sign in with your
+              YQM Rides driver
+              account.
             </p>
 
-            <div style={gridStyle}>
+            <div
+              style={
+                gridStyle
+              }
+            >
               <Field label="Email">
                 <input
-                  style={inputStyle}
+                  style={
+                    inputStyle
+                  }
                   type="email"
-                  value={email}
-                  onChange={(e) =>
-                    setEmail(e.target.value)
+                  value={
+                    email
+                  }
+                  onChange={(
+                    e
+                  ) =>
+                    setEmail(
+                      e.target
+                        .value
+                    )
                   }
                 />
               </Field>
 
               <Field label="Password">
                 <input
-                  style={inputStyle}
+                  style={
+                    inputStyle
+                  }
                   type="password"
-                  value={password}
-                  onChange={(e) =>
-                    setPassword(e.target.value)
+                  value={
+                    password
+                  }
+                  onChange={(
+                    e
+                  ) =>
+                    setPassword(
+                      e.target
+                        .value
+                    )
                   }
                 />
               </Field>
@@ -744,8 +1306,12 @@ export default function Home() {
 
             <button
               type="button"
-              style={buttonStyle}
-              onClick={handleLogin}
+              style={
+                buttonStyle
+              }
+              onClick={
+                handleLogin
+              }
             >
               Sign In
             </button>
@@ -754,837 +1320,674 @@ export default function Home() {
 
         {loggedIn && (
           <>
-            <div style={welcomeRowStyle}>
+            <div
+              style={
+                welcomeRowStyle
+              }
+            >
               <div>
                 <h2
                   style={{
-                    marginBottom: "4px",
+                    marginBottom:
+                      "4px",
                   }}
                 >
                   Welcome 👋
                 </h2>
 
-                <p style={{ marginTop: 0 }}>
-                  Your shared ride schedule and
+                <p
+                  style={{
+                    marginTop: 0,
+                  }}
+                >
+                  Your shared ride
+                  schedule and
                   dispatch board.
                 </p>
               </div>
 
               <button
                 type="button"
-                onClick={openNewRide}
-                style={newRideButtonStyle}
+                onClick={
+                  openNewRide
+                }
+                style={
+                  newRideButtonStyle
+                }
               >
                 + Add New Ride
               </button>
             </div>
 
-            <div style={summaryGridStyle}>
+            <div
+              style={
+                summaryGridStyle
+              }
+            >
               <SummaryBox
-                value={activeToRides.length}
+                value={
+                  activeToRides.length
+                }
                 label="Active TO"
                 icon="🚗"
               />
 
               <SummaryBox
-                value={returnQueue.length}
+                value={
+                  returnQueue.length
+                }
                 label="Return Queue"
                 icon="🔁"
               />
 
               <SummaryBox
-                value={completedRides.length}
+                value={
+                  completedRides.length
+                }
                 label="Completed"
                 icon="✅"
               />
 
               <SummaryBox
-                value={`$${expectedTotal.toFixed(2)}`}
+                value={`$${expectedTotal.toFixed(
+                  2
+                )}`}
                 label="Expected"
                 icon="💰"
               />
 
               <SummaryBox
-                value={`$${collectedTotal.toFixed(2)}`}
+                value={`$${collectedTotal.toFixed(
+                  2
+                )}`}
                 label="Collected"
                 icon="💵"
               />
             </div>
 
-            <section style={sectionStyle}>
-              <h2 style={sectionTitleStyle}>
+            <section
+              style={
+                sectionStyle
+              }
+            >
+              <h2
+                style={
+                  sectionTitleStyle
+                }
+              >
                 📅 Weekend Schedule
               </h2>
 
-              <p style={sectionSubtitleStyle}>
-                Upcoming and unfinished bookings.
-                Fully completed rides move to the
-                Completed section below.
+              <p
+                style={
+                  sectionSubtitleStyle
+                }
+              >
+                Upcoming and
+                unfinished bookings.
+                Fully completed rides
+                move to Completed.
               </p>
 
               {loadingRides && (
-                <p>Loading schedule...</p>
+                <p>
+                  Loading
+                  schedule...
+                </p>
               )}
 
               {!loadingRides &&
-                weekendSchedule.length === 0 && (
+                weekendSchedule.length ===
+                  0 && (
                   <p>
-                    No unfinished bookings.
+                    No unfinished
+                    bookings.
                   </p>
                 )}
 
               {getDatesForRides(
                 weekendSchedule
-              ).map((date) => (
-                <details
-                  key={`schedule-${date}`}
-                  open
-                  style={daySectionStyle}
-                >
-                  <summary
-                    style={daySummaryStyle}
-                  >
-                    {formatDate(date)} —{" "}
-                    {
-                      ridesForDate(
-                        weekendSchedule,
-                        date
-                      ).length
-                    }{" "}
-                    booking
-                    {ridesForDate(
-                      weekendSchedule,
-                      date
-                    ).length !== 1
-                      ? "s"
-                      : ""}
-                  </summary>
+              ).map((date) => {
+                const dayRides =
+                  ridesForDate(
+                    weekendSchedule,
+                    date
+                  );
 
-                  <div
-                    style={scheduleListStyle}
+                return (
+                  <details
+                    key={`schedule-${date}`}
+                    open
+                    style={
+                      daySectionStyle
+                    }
                   >
-                    {ridesForDate(
-                      weekendSchedule,
-                      date
-                    ).map((ride) => (
-                      <ScheduleRideRow
-                        key={`weekend-${ride.id}`}
-                        ride={ride}
-                        getToTotal={getToTotal}
-                        toStatusText={toStatusText}
-                        scheduleReturnText={
-                          scheduleReturnText
-                        }
-                        formatTime={formatTime}
-                        openEditRide={
-                          openEditRide
-                        }
-                        toggleCancelled={
-                          toggleCancelled
-                        }
-                        deleteRide={deleteRide}
-                      />
-                    ))}
-                  </div>
-                </details>
-              ))}
+                    <summary
+                      style={
+                        daySummaryStyle
+                      }
+                    >
+                      {formatDate(
+                        date
+                      )}{" "}
+                      —{" "}
+                      {
+                        dayRides.length
+                      }{" "}
+                      booking
+                      {dayRides.length !==
+                      1
+                        ? "s"
+                        : ""}
+                    </summary>
+
+                    <div
+                      style={
+                        scheduleListStyle
+                      }
+                    >
+                      {dayRides.map(
+                        (ride) => (
+                          <ScheduleRideRow
+                            key={`weekend-${ride.id}`}
+                            ride={
+                              ride
+                            }
+                            getToTotal={
+                              getToTotal
+                            }
+                            toStatusText={
+                              toStatusText
+                            }
+                            scheduleReturnText={
+                              scheduleReturnText
+                            }
+                            formatTime={
+                              formatTime
+                            }
+                            openEditRide={
+                              openEditRide
+                            }
+                            toggleCancelled={
+                              toggleCancelled
+                            }
+                            deleteRide={
+                              deleteRide
+                            }
+                          />
+                        )
+                      )}
+                    </div>
+                  </details>
+                );
+              })}
             </section>
 
-            <section style={sectionStyle}>
-              <h2 style={sectionTitleStyle}>
+            <section
+              style={
+                sectionStyle
+              }
+            >
+              <h2
+                style={
+                  sectionTitleStyle
+                }
+              >
                 🚗 Active TO Rides
               </h2>
 
-              <p style={sectionSubtitleStyle}>
-                Everyone who still needs their ride
-                to YQM.
+              <p
+                style={
+                  sectionSubtitleStyle
+                }
+              >
+                Everyone who still
+                needs their ride to
+                YQM.
               </p>
 
-              {activeToRides.length === 0 && (
-                <p>No active TO rides.</p>
+              {activeToRides.length ===
+                0 && (
+                <p>
+                  No active TO
+                  rides.
+                </p>
               )}
 
               {getDatesForRides(
                 activeToRides
-              ).map((date) => (
-                <details
-                  key={`to-${date}`}
-                  open
-                  style={daySectionStyle}
-                >
-                  <summary
-                    style={daySummaryStyle}
+              ).map((date) => {
+                const dayRides =
+                  ridesForDate(
+                    activeToRides,
+                    date
+                  );
+
+                return (
+                  <details
+                    key={`to-${date}`}
+                    open
+                    style={
+                      daySectionStyle
+                    }
                   >
-                    🚗 {formatDate(date)} —{" "}
-                    {
-                      ridesForDate(
-                        activeToRides,
+                    <summary
+                      style={
+                        daySummaryStyle
+                      }
+                    >
+                      🚗{" "}
+                      {formatDate(
                         date
-                      ).length
-                    }{" "}
-                    remaining
-                  </summary>
+                      )}{" "}
+                      —{" "}
+                      {
+                        dayRides.length
+                      }{" "}
+                      remaining
+                    </summary>
 
-                  <div
-                    style={dateCardContainerStyle}
-                  >
-                    {ridesForDate(
-                      activeToRides,
-                      date
-                    ).map((ride) => (
-                      <div
-                        key={ride.id}
-                        style={rideCardStyle}
-                      >
-                        <div
-                          style={
-                            rideCardHeaderStyle
-                          }
-                        >
-                          <div>
-                            <strong>
-                              {
-                                ride.client_name
-                              }
-                            </strong>
-
-                            <span
-                              style={
-                                mutedTextStyle
-                              }
-                            >
-                              {" "}
-                              ·{" "}
-                              {
-                                ride.group_size
-                              }{" "}
-                              passengers
-                            </span>
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              openEditRide(
-                                ride
-                              )
+                    <div
+                      style={
+                        dateCardContainerStyle
+                      }
+                    >
+                      {dayRides.map(
+                        (ride) => (
+                          <ActiveToCard
+                            key={
+                              ride.id
                             }
-                            style={
-                              smallActionButtonStyle
-                            }
-                          >
-                            ✏️ Edit
-                          </button>
-                        </div>
-
-                        <div>
-                          🕐{" "}
-                          {formatTime(
-                            ride.pickup_time
-                          )}
-                        </div>
-
-                        <div>
-                          📍{" "}
-                          {ride.pickup_location ||
-                            "No pickup location"}
-                        </div>
-
-                        <div>
-                          🚗 Driver:{" "}
-                          {ride.to_driver ||
-                            "Not assigned"}
-                        </div>
-
-                        <div>
-                          📋 Status:{" "}
-                          <strong>
-                            {toStatusText(
-                              ride.to_status
-                            )}
-                          </strong>
-                        </div>
-
-                        <div
-                          style={
-                            actionRowStyle
-                          }
-                        >
-                          {(!ride.to_status ||
-                            ride.to_status ===
-                              "upcoming") && (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                updateRideStatus(
-                                  ride.id,
-                                  "on_my_way"
-                                )
-                              }
-                              style={
-                                statusButtonStyle
-                              }
-                            >
-                              🚗 On my way
-                            </button>
-                          )}
-
-                          {ride.to_status ===
-                            "on_my_way" && (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                updateRideStatus(
-                                  ride.id,
-                                  "picked_up"
-                                )
-                              }
-                              style={
-                                statusButtonStyle
-                              }
-                            >
-                              👥 Picked up
-                            </button>
-                          )}
-
-                          {ride.to_status ===
-                            "picked_up" && (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                updateRideStatus(
-                                  ride.id,
-                                  "completed"
-                                )
-                              }
-                              style={
-                                statusButtonStyle
-                              }
-                            >
-                              ✅ Dropped off
-                            </button>
-                          )}
-                        </div>
-
-                        <div
-                          style={
-                            paymentRowStyle
-                          }
-                        >
-                          <button
-                            type="button"
-                            onClick={() =>
-                              toggleToPaid(
-                                ride
-                              )
-                            }
-                            style={
-                              ride.to_paid
-                                ? paidButtonStyle
-                                : unpaidButtonStyle
-                            }
-                          >
-                            {ride.to_paid
-                              ? "✅ TO Paid — Mark Unpaid"
-                              : "💵 Mark TO Paid"}
-                          </button>
-                        </div>
-
-                        <div
-                          style={
-                            messageButtonRowStyle
-                          }
-                        >
-                          <button
-                            type="button"
-                            onClick={() =>
-                              textToOnMyWay(
-                                ride
-                              )
-                            }
-                            style={
-                              textMessageButtonStyle
-                            }
-                          >
-                            📱 Text: On my way
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              textToImHere(
-                                ride
-                              )
-                            }
-                            style={
-                              textMessageButtonStyle
-                            }
-                          >
-                            📍 Text: I’m here
-                          </button>
-                        </div>
-
-                        <div
-                          style={{
-                            marginTop: "10px",
-                          }}
-                        >
-                          💰 TO YQM:{" "}
-                          <strong>
-                            $
-                            {getToTotal(
+                            ride={
                               ride
-                            ).toFixed(2)}
-                          </strong>
-                          {" — "}
-                          {ride.to_paid
-                            ? "Paid ✅"
-                            : "Unpaid ❌"}
-                        </div>
-
-                        {ride.return_requested && (
-                          <div>
-                            🔁 Return booked:{" "}
-                            <strong>
-                              $
-                              {getReturnTotal(
-                                ride
-                              ).toFixed(2)}
-                            </strong>
-                            {" — "}
-                            {ride.return_paid
-                              ? "Paid ✅"
-                              : "Unpaid ❌"}
-                          </div>
-                        )}
-
-                        <div
-                          style={
-                            bookingTotalStyle
-                          }
-                        >
-                          Booking Total: $
-                          {(
-                            getToTotal(ride) +
-                            getReturnTotal(
-                              ride
-                            )
-                          ).toFixed(2)}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </details>
-              ))}
+                            }
+                            formatTime={
+                              formatTime
+                            }
+                            toStatusText={
+                              toStatusText
+                            }
+                            getToTotal={
+                              getToTotal
+                            }
+                            getReturnTotal={
+                              getReturnTotal
+                            }
+                            updateRideStatus={
+                              updateRideStatus
+                            }
+                            toggleToPaid={
+                              toggleToPaid
+                            }
+                            openEditRide={
+                              openEditRide
+                            }
+                            textToOnMyWay={
+                              textToOnMyWay
+                            }
+                            textToImHere={
+                              textToImHere
+                            }
+                          />
+                        )
+                      )}
+                    </div>
+                  </details>
+                );
+              })}
             </section>
 
-            <section style={sectionStyle}>
-              <h2 style={sectionTitleStyle}>
+            <section
+              style={
+                sectionStyle
+              }
+            >
+              <h2
+                style={
+                  sectionTitleStyle
+                }
+              >
                 🔁 Return Queue
               </h2>
 
-              <p style={sectionSubtitleStyle}>
-                Appears here after the TO ride is
-                completed and stays until the return
-                ride is finished.
+              <p
+                style={
+                  sectionSubtitleStyle
+                }
+              >
+                First booked, first
+                priority — separately
+                for each event date.
               </p>
 
-              {returnQueue.length === 0 && (
+              {returnQueue.length ===
+                0 && (
                 <p>
-                  No return rides waiting.
+                  No return rides
+                  waiting.
                 </p>
               )}
 
               {getDatesForRides(
                 returnQueue
-              ).map((date) => (
-                <details
-                  key={`return-${date}`}
-                  open
-                  style={daySectionStyle}
-                >
-                  <summary
-                    style={daySummaryStyle}
+              ).map((date) => {
+                const dayReturns =
+                  returnRidesForDate(
+                    returnQueue,
+                    date
+                  );
+
+                return (
+                  <details
+                    key={`return-${date}`}
+                    open
+                    style={
+                      daySectionStyle
+                    }
                   >
-                    🔁 {formatDate(date)} —{" "}
-                    {
-                      ridesForDate(
-                        returnQueue,
+                    <summary
+                      style={
+                        returnDaySummaryStyle
+                      }
+                    >
+                      🔁{" "}
+                      {formatDate(
                         date
-                      ).length
-                    }{" "}
-                    waiting
-                  </summary>
+                      )}{" "}
+                      —{" "}
+                      {
+                        dayReturns.length
+                      }{" "}
+                      waiting
+                    </summary>
 
-                  <div
-                    style={dateCardContainerStyle}
-                  >
-                    {ridesForDate(
-                      returnQueue,
-                      date
-                    ).map((ride) => (
-                      <div
-                        key={`return-${ride.id}`}
-                        style={rideCardStyle}
-                      >
-                        <div
-                          style={
-                            rideCardHeaderStyle
-                          }
-                        >
-                          <div>
-                            <strong>
-                              {
-                                ride.client_name
-                              }
-                            </strong>
-
-                            <span
-                              style={
-                                mutedTextStyle
-                              }
-                            >
-                              {" "}
-                              ·{" "}
-                              {
-                                ride.group_size
-                              }{" "}
-                              passengers
-                            </span>
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              openEditRide(
-                                ride
-                              )
-                            }
-                            style={
-                              smallActionButtonStyle
-                            }
-                          >
-                            ✏️ Edit
-                          </button>
-                        </div>
-
-                        <div>
-                          📍 Return to:{" "}
-                          {ride.return_location ||
-                            "No return location"}
-                        </div>
-
-                        <div>
-                          🚗 Return Driver:{" "}
-                          {ride.return_driver ||
-                            "Not assigned"}
-                        </div>
-
-                        <div>
-                          📋 Return Status:{" "}
-                          <strong>
-                            {returnStatusText(
-                              ride.return_status
-                            )}
-                          </strong>
-                        </div>
-
-                        <div
-                          style={
-                            actionRowStyle
-                          }
-                        >
-                          {(!ride.return_status ||
-                            ride.return_status ===
-                              "waiting") && (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                updateReturnStatus(
-                                  ride.id,
-                                  "on_my_way"
-                                )
-                              }
-                              style={
-                                statusButtonStyle
-                              }
-                            >
-                              🚗 On my way
-                            </button>
-                          )}
-
-                          {ride.return_status ===
-                            "on_my_way" && (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                updateReturnStatus(
-                                  ride.id,
-                                  "picked_up"
-                                )
-                              }
-                              style={
-                                statusButtonStyle
-                              }
-                            >
-                              👥 Picked up
-                            </button>
-                          )}
-
-                          {ride.return_status ===
-                            "picked_up" && (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                updateReturnStatus(
-                                  ride.id,
-                                  "completed"
-                                )
-                              }
-                              style={
-                                statusButtonStyle
-                              }
-                            >
-                              ✅ Returned home
-                            </button>
-                          )}
-                        </div>
-
-                        <div
-                          style={
-                            paymentRowStyle
-                          }
-                        >
-                          <button
-                            type="button"
-                            onClick={() =>
-                              toggleReturnPaid(
-                                ride
-                              )
-                            }
-                            style={
-                              ride.return_paid
-                                ? paidButtonStyle
-                                : unpaidButtonStyle
-                            }
-                          >
-                            {ride.return_paid
-                              ? "✅ Return Paid — Mark Unpaid"
-                              : "💵 Mark Return Paid"}
-                          </button>
-                        </div>
-
-                        <div
-                          style={
-                            messageButtonRowStyle
-                          }
-                        >
-                          <button
-                            type="button"
-                            onClick={() =>
-                              textReturnOnMyWay(
-                                ride
-                              )
-                            }
-                            style={
-                              textMessageButtonStyle
-                            }
-                          >
-                            📱 Text: On my way
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              textReturnImHere(
-                                ride
-                              )
-                            }
-                            style={
-                              textMessageButtonStyle
-                            }
-                          >
-                            📍 Text: I’m here
-                          </button>
-                        </div>
-
-                        <div
-                          style={{
-                            marginTop: "10px",
-                          }}
-                        >
-                          💰 Return:{" "}
-                          <strong>
-                            $
-                            {getReturnTotal(
+                    <div
+                      style={
+                        dateCardContainerStyle
+                      }
+                    >
+                      {dayReturns.map(
+                        (
+                          ride,
+                          index
+                        ) => (
+                          <ReturnRideCard
+                            key={`return-${ride.id}`}
+                            ride={
                               ride
-                            ).toFixed(2)}
-                          </strong>
-                          {" — "}
-                          {ride.return_paid
-                            ? "Paid ✅"
-                            : "Unpaid ❌"}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </details>
-              ))}
+                            }
+                            visiblePriority={
+                              index +
+                              1
+                            }
+                            returnStatusText={
+                              returnStatusText
+                            }
+                            getReturnTotal={
+                              getReturnTotal
+                            }
+                            updateReturnStatus={
+                              updateReturnStatus
+                            }
+                            toggleReturnPaid={
+                              toggleReturnPaid
+                            }
+                            openEditRide={
+                              openEditRide
+                            }
+                            textReturnOnMyWay={
+                              textReturnOnMyWay
+                            }
+                            textReturnImHere={
+                              textReturnImHere
+                            }
+                          />
+                        )
+                      )}
+                    </div>
+                  </details>
+                );
+              })}
             </section>
 
-            <section style={completedSectionStyle}>
-              <h2 style={sectionTitleStyle}>
+            <section
+              style={
+                completedSectionStyle
+              }
+            >
+              <h2
+                style={
+                  sectionTitleStyle
+                }
+              >
                 ✅ Completed
               </h2>
 
-              <p style={sectionSubtitleStyle}>
-                Finished bookings are kept here for
-                reference and grouped by date.
+              <p
+                style={
+                  sectionSubtitleStyle
+                }
+              >
+                Finished bookings are
+                kept here for reference
+                and grouped by date.
               </p>
 
-              {completedRides.length === 0 && (
+              {completedRides.length ===
+                0 && (
                 <p>
-                  No completed bookings yet.
+                  No completed
+                  bookings yet.
                 </p>
               )}
 
               {getDatesForRides(
                 completedRides
-              ).map((date) => (
-                <details
-                  key={`completed-${date}`}
-                  style={daySectionStyle}
-                >
-                  <summary
-                    style={completedDaySummaryStyle}
-                  >
-                    ✅ {formatDate(date)} —{" "}
-                    {
-                      ridesForDate(
-                        completedRides,
-                        date
-                      ).length
-                    }{" "}
-                    completed
-                  </summary>
+              ).map((date) => {
+                const dayCompleted =
+                  ridesForDate(
+                    completedRides,
+                    date
+                  );
 
-                  <div
-                    style={scheduleListStyle}
+                return (
+                  <details
+                    key={`completed-${date}`}
+                    style={
+                      daySectionStyle
+                    }
                   >
-                    {ridesForDate(
-                      completedRides,
+                    <summary
+                      style={
+                        completedDaySummaryStyle
+                      }
+                    >
+                      ✅{" "}
+                      {formatDate(
+                        date
+                      )}{" "}
+                      —{" "}
+                      {
+                        dayCompleted.length
+                      }{" "}
+                      completed
+                    </summary>
+
+                    <div
+                      style={
+                        scheduleListStyle
+                      }
+                    >
+                      {dayCompleted.map(
+                        (ride) => (
+                          <CompletedRideCard
+                            key={`completed-${ride.id}`}
+                            ride={
+                              ride
+                            }
+                            getToTotal={
+                              getToTotal
+                            }
+                            getReturnTotal={
+                              getReturnTotal
+                            }
+                            openEditRide={
+                              openEditRide
+                            }
+                            deleteRide={
+                              deleteRide
+                            }
+                          />
+                        )
+                      )}
+                    </div>
+                  </details>
+                );
+              })}
+            </section>
+
+            {cancelledRides.length >
+              0 && (
+              <section
+                style={
+                  cancelledSectionStyle
+                }
+              >
+                <h2
+                  style={
+                    sectionTitleStyle
+                  }
+                >
+                  🚫 Cancelled
+                </h2>
+
+                <p
+                  style={
+                    sectionSubtitleStyle
+                  }
+                >
+                  Cancelled bookings
+                  remain here so you can
+                  restore them if
+                  needed.
+                </p>
+
+                {getDatesForRides(
+                  cancelledRides
+                ).map((date) => {
+                  const dayCancelled =
+                    ridesForDate(
+                      cancelledRides,
                       date
-                    ).map((ride) => (
-                      <div
-                        key={`completed-${ride.id}`}
+                    );
+
+                  return (
+                    <details
+                      key={`cancelled-${date}`}
+                      style={
+                        daySectionStyle
+                      }
+                    >
+                      <summary
                         style={
-                          completedRideStyle
+                          cancelledDaySummaryStyle
                         }
                       >
-                        <div>
-                          <strong>
-                            {ride.client_name}
-                          </strong>{" "}
-                          · {ride.group_size}{" "}
-                          passengers
-                        </div>
+                        🚫{" "}
+                        {formatDate(
+                          date
+                        )}{" "}
+                        —{" "}
+                        {
+                          dayCancelled.length
+                        }{" "}
+                        cancelled
+                      </summary>
 
-                        <div>
-                          🚗 TO: Dropped off ✅
-                        </div>
+                      <div
+                        style={
+                          scheduleListStyle
+                        }
+                      >
+                        {dayCancelled.map(
+                          (ride) => (
+                            <div
+                              key={`cancelled-${ride.id}`}
+                              style={
+                                completedRideStyle
+                              }
+                            >
+                              <strong>
+                                {
+                                  ride.client_name
+                                }
+                              </strong>{" "}
+                              ·{" "}
+                              {
+                                ride.group_size
+                              }{" "}
+                              passengers
 
-                        <div>
-                          💰 TO: $
-                          {getToTotal(
-                            ride
-                          ).toFixed(2)}
-                          {" — "}
-                          {ride.to_paid
-                            ? "Paid ✅"
-                            : "Unpaid ❌"}
-                        </div>
+                              <div
+                                style={
+                                  scheduleActionsStyle
+                                }
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    toggleCancelled(
+                                      ride
+                                    )
+                                  }
+                                  style={
+                                    smallActionButtonStyle
+                                  }
+                                >
+                                  ↩ Restore
+                                </button>
 
-                        {ride.return_requested && (
-                          <>
-                            <div>
-                              🔁 Return: Returned
-                              home ✅
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    deleteRide(
+                                      ride
+                                    )
+                                  }
+                                  style={
+                                    deleteButtonStyle
+                                  }
+                                >
+                                  🗑️ Delete
+                                </button>
+                              </div>
                             </div>
-
-                            <div>
-                              💰 Return: $
-                              {getReturnTotal(
-                                ride
-                              ).toFixed(2)}
-                              {" — "}
-                              {ride.return_paid
-                                ? "Paid ✅"
-                                : "Unpaid ❌"}
-                            </div>
-                          </>
+                          )
                         )}
-
-                        <div
-                          style={
-                            bookingTotalStyle
-                          }
-                        >
-                          Total: $
-                          {(
-                            getToTotal(ride) +
-                            getReturnTotal(
-                              ride
-                            )
-                          ).toFixed(2)}
-                        </div>
-
-                        <div
-                          style={
-                            scheduleActionsStyle
-                          }
-                        >
-                          <button
-                            type="button"
-                            onClick={() =>
-                              openEditRide(
-                                ride
-                              )
-                            }
-                            style={
-                              smallActionButtonStyle
-                            }
-                          >
-                            ✏️ Edit
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              deleteRide(ride)
-                            }
-                            style={
-                              deleteButtonStyle
-                            }
-                          >
-                            🗑️ Delete
-                          </button>
-                        </div>
                       </div>
-                    ))}
-                  </div>
-                </details>
-              ))}
-            </section>
+                    </details>
+                  );
+                })}
+              </section>
+            )}
 
             {showForm && (
               <section
                 id="booking-form"
-                style={formCardStyle}
+                style={
+                  formCardStyle
+                }
               >
                 <div
-                  style={formHeaderStyle}
+                  style={
+                    formHeaderStyle
+                  }
                 >
-                  <h2 style={{ margin: 0 }}>
+                  <h2
+                    style={{
+                      margin: 0,
+                    }}
+                  >
                     {editingRideId
                       ? "✏️ Edit Booking"
                       : "➕ New Ride"}
@@ -1592,124 +1995,193 @@ export default function Home() {
 
                   <button
                     type="button"
-                    onClick={resetForm}
-                    style={closeButtonStyle}
+                    onClick={
+                      resetForm
+                    }
+                    style={
+                      closeButtonStyle
+                    }
                   >
                     ✕
                   </button>
                 </div>
 
-                <div style={gridStyle}>
+                <div
+                  style={
+                    gridStyle
+                  }
+                >
                   <Field label="Client / Group Name">
                     <input
-                      style={inputStyle}
+                      style={
+                        inputStyle
+                      }
                       type="text"
                       value={
                         formData.client_name
                       }
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          client_name:
-                            e.target.value,
-                        })
+                      onChange={(
+                        e
+                      ) =>
+                        setFormData(
+                          {
+                            ...formData,
+                            client_name:
+                              e
+                                .target
+                                .value,
+                          }
+                        )
                       }
                     />
                   </Field>
 
                   <Field label="Phone Number">
                     <input
-                      style={inputStyle}
+                      style={
+                        inputStyle
+                      }
                       type="tel"
-                      value={formData.phone}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          phone: e.target.value,
-                        })
+                      value={
+                        formData.phone
+                      }
+                      onChange={(
+                        e
+                      ) =>
+                        setFormData(
+                          {
+                            ...formData,
+                            phone:
+                              e
+                                .target
+                                .value,
+                          }
+                        )
                       }
                     />
                   </Field>
 
                   <Field label="Group Size">
                     <input
-                      style={inputStyle}
+                      style={
+                        inputStyle
+                      }
                       type="number"
                       min="1"
                       value={
                         formData.group_size
                       }
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          group_size:
-                            e.target.value,
-                        })
+                      onChange={(
+                        e
+                      ) =>
+                        setFormData(
+                          {
+                            ...formData,
+                            group_size:
+                              e
+                                .target
+                                .value,
+                          }
+                        )
                       }
                     />
                   </Field>
 
                   <Field label="Date">
                     <input
-                      style={inputStyle}
+                      style={
+                        inputStyle
+                      }
                       type="date"
                       value={
                         formData.event_date
                       }
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          event_date:
-                            e.target.value,
-                        })
+                      onChange={(
+                        e
+                      ) =>
+                        setFormData(
+                          {
+                            ...formData,
+                            event_date:
+                              e
+                                .target
+                                .value,
+                          }
+                        )
                       }
                     />
                   </Field>
 
                   <Field label="Pickup Time">
                     <input
-                      style={inputStyle}
+                      style={
+                        inputStyle
+                      }
                       type="time"
                       value={
                         formData.pickup_time
                       }
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          pickup_time:
-                            e.target.value,
-                        })
+                      onChange={(
+                        e
+                      ) =>
+                        setFormData(
+                          {
+                            ...formData,
+                            pickup_time:
+                              e
+                                .target
+                                .value,
+                          }
+                        )
                       }
                     />
                   </Field>
 
                   <Field label="Pickup Location">
                     <input
-                      style={inputStyle}
+                      style={
+                        inputStyle
+                      }
                       type="text"
                       value={
                         formData.pickup_location
                       }
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          pickup_location:
-                            e.target.value,
-                        })
+                      onChange={(
+                        e
+                      ) =>
+                        setFormData(
+                          {
+                            ...formData,
+                            pickup_location:
+                              e
+                                .target
+                                .value,
+                          }
+                        )
                       }
                     />
                   </Field>
 
                   <Field label="TO Driver">
                     <select
-                      style={inputStyle}
-                      value={formData.driver}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          driver:
-                            e.target.value,
-                        })
+                      style={
+                        inputStyle
+                      }
+                      value={
+                        formData.driver
+                      }
+                      onChange={(
+                        e
+                      ) =>
+                        setFormData(
+                          {
+                            ...formData,
+                            driver:
+                              e
+                                .target
+                                .value,
+                          }
+                        )
                       }
                     >
                       <option value="">
@@ -1717,12 +2189,20 @@ export default function Home() {
                       </option>
 
                       {DRIVER_OPTIONS.map(
-                        (driver) => (
+                        (
+                          driver
+                        ) => (
                           <option
-                            key={driver}
-                            value={driver}
+                            key={
+                              driver
+                            }
+                            value={
+                              driver
+                            }
                           >
-                            {driver}
+                            {
+                              driver
+                            }
                           </option>
                         )
                       )}
@@ -1731,19 +2211,33 @@ export default function Home() {
                 </div>
 
                 <h3
-                  style={formSectionTitleStyle}
+                  style={
+                    formSectionTitleStyle
+                  }
                 >
                   🚗 Ride TO Event
                 </h3>
 
-                <div style={gridStyle}>
+                <div
+                  style={
+                    gridStyle
+                  }
+                >
                   <Field label="Pricing Type">
                     <select
-                      style={inputStyle}
-                      value={pricingType}
-                      onChange={(e) =>
+                      style={
+                        inputStyle
+                      }
+                      value={
+                        pricingType
+                      }
+                      onChange={(
+                        e
+                      ) =>
                         setPricingType(
-                          e.target.value
+                          e
+                            .target
+                            .value
                         )
                       }
                     >
@@ -1752,7 +2246,8 @@ export default function Home() {
                       </option>
 
                       <option value="flat">
-                        Flat group price
+                        Flat group
+                        price
                       </option>
                     </select>
                   </Field>
@@ -1766,36 +2261,54 @@ export default function Home() {
                     }
                   >
                     <input
-                      style={inputStyle}
+                      style={
+                        inputStyle
+                      }
                       type="number"
                       min="0"
                       step="0.01"
-                      value={formData.to_price}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          to_price:
-                            e.target.value,
-                        })
+                      value={
+                        formData.to_price
+                      }
+                      onChange={(
+                        e
+                      ) =>
+                        setFormData(
+                          {
+                            ...formData,
+                            to_price:
+                              e
+                                .target
+                                .value,
+                          }
+                        )
                       }
                     />
                   </Field>
 
                   <Field label="Payment">
                     <select
-                      style={inputStyle}
+                      style={
+                        inputStyle
+                      }
                       value={
                         formData.to_paid
                           ? "paid"
                           : "unpaid"
                       }
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          to_paid:
-                            e.target.value ===
-                            "paid",
-                        })
+                      onChange={(
+                        e
+                      ) =>
+                        setFormData(
+                          {
+                            ...formData,
+                            to_paid:
+                              e
+                                .target
+                                .value ===
+                              "paid",
+                          }
+                        )
                       }
                     >
                       <option value="unpaid">
@@ -1810,27 +2323,41 @@ export default function Home() {
                 </div>
 
                 <h3
-                  style={formSectionTitleStyle}
+                  style={
+                    formSectionTitleStyle
+                  }
                 >
                   🔁 Return Ride
                 </h3>
 
-                <div style={gridStyle}>
+                <div
+                  style={
+                    gridStyle
+                  }
+                >
                   <Field label="Return Requested">
                     <select
-                      style={inputStyle}
+                      style={
+                        inputStyle
+                      }
                       value={
                         formData.return_requested
                           ? "yes"
                           : "no"
                       }
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          return_requested:
-                            e.target.value ===
-                            "yes",
-                        })
+                      onChange={(
+                        e
+                      ) =>
+                        setFormData(
+                          {
+                            ...formData,
+                            return_requested:
+                              e
+                                .target
+                                .value ===
+                              "yes",
+                          }
+                        )
                       }
                     >
                       <option value="no">
@@ -1847,46 +2374,69 @@ export default function Home() {
                     <>
                       <Field label="Return Location">
                         <input
-                          style={inputStyle}
+                          style={
+                            inputStyle
+                          }
                           type="text"
                           value={
                             formData.return_location
                           }
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              return_location:
-                                e.target.value,
-                            })
+                          onChange={(
+                            e
+                          ) =>
+                            setFormData(
+                              {
+                                ...formData,
+                                return_location:
+                                  e
+                                    .target
+                                    .value,
+                              }
+                            )
                           }
                         />
                       </Field>
 
                       <Field label="Return Driver">
                         <select
-                          style={inputStyle}
+                          style={
+                            inputStyle
+                          }
                           value={
                             formData.return_driver
                           }
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              return_driver:
-                                e.target.value,
-                            })
+                          onChange={(
+                            e
+                          ) =>
+                            setFormData(
+                              {
+                                ...formData,
+                                return_driver:
+                                  e
+                                    .target
+                                    .value,
+                              }
+                            )
                           }
                         >
                           <option value="">
-                            Select driver
+                            Select
+                            driver
                           </option>
 
                           {DRIVER_OPTIONS.map(
-                            (driver) => (
+                            (
+                              driver
+                            ) => (
                               <option
                                 key={`return-${driver}`}
-                                value={driver}
+                                value={
+                                  driver
+                                }
                               >
-                                {driver}
+                                {
+                                  driver
+                                }
                               </option>
                             )
                           )}
@@ -1895,13 +2445,19 @@ export default function Home() {
 
                       <Field label="Return Pricing Type">
                         <select
-                          style={inputStyle}
+                          style={
+                            inputStyle
+                          }
                           value={
                             returnPricingType
                           }
-                          onChange={(e) =>
+                          onChange={(
+                            e
+                          ) =>
                             setReturnPricingType(
-                              e.target.value
+                              e
+                                .target
+                                .value
                             )
                           }
                         >
@@ -1910,7 +2466,8 @@ export default function Home() {
                           </option>
 
                           <option value="flat">
-                            Flat group price
+                            Flat group
+                            price
                           </option>
                         </select>
                       </Field>
@@ -1924,38 +2481,54 @@ export default function Home() {
                         }
                       >
                         <input
-                          style={inputStyle}
+                          style={
+                            inputStyle
+                          }
                           type="number"
                           min="0"
                           step="0.01"
                           value={
                             formData.return_price
                           }
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              return_price:
-                                e.target.value,
-                            })
+                          onChange={(
+                            e
+                          ) =>
+                            setFormData(
+                              {
+                                ...formData,
+                                return_price:
+                                  e
+                                    .target
+                                    .value,
+                              }
+                            )
                           }
                         />
                       </Field>
 
                       <Field label="Return Payment">
                         <select
-                          style={inputStyle}
+                          style={
+                            inputStyle
+                          }
                           value={
                             formData.return_paid
                               ? "paid"
                               : "unpaid"
                           }
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              return_paid:
-                                e.target.value ===
-                                "paid",
-                            })
+                          onChange={(
+                            e
+                          ) =>
+                            setFormData(
+                              {
+                                ...formData,
+                                return_paid:
+                                  e
+                                    .target
+                                    .value ===
+                                  "paid",
+                              }
+                            )
                           }
                         >
                           <option value="unpaid">
@@ -1973,53 +2546,75 @@ export default function Home() {
 
                 <div
                   style={{
-                    marginTop: "20px",
+                    marginTop:
+                      "20px",
                   }}
                 >
                   <Field label="Notes">
                     <textarea
                       style={{
                         ...inputStyle,
-                        minHeight: "100px",
+                        minHeight:
+                          "100px",
                       }}
-                      value={formData.notes}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          notes:
-                            e.target.value,
-                        })
+                      value={
+                        formData.notes
+                      }
+                      onChange={(
+                        e
+                      ) =>
+                        setFormData(
+                          {
+                            ...formData,
+                            notes:
+                              e
+                                .target
+                                .value,
+                          }
+                        )
                       }
                     />
                   </Field>
                 </div>
 
                 <div
-                  style={formActionRowStyle}
+                  style={
+                    formActionRowStyle
+                  }
                 >
                   <button
                     type="button"
-                    onClick={resetForm}
-                    style={cancelButtonStyle}
+                    onClick={
+                      resetForm
+                    }
+                    style={
+                      cancelButtonStyle
+                    }
                   >
                     Cancel
                   </button>
 
                   <button
                     type="button"
-                    onClick={handleSaveRide}
-                    disabled={saving}
+                    onClick={
+                      handleSaveRide
+                    }
+                    disabled={
+                      saving
+                    }
                     style={{
                       ...saveButtonStyle,
                       opacity:
-                        saving ? 0.6 : 1,
+                        saving
+                          ? 0.6
+                          : 1,
                     }}
                   >
                     {saving
                       ? "Saving..."
                       : editingRideId
-                      ? "Update Booking"
-                      : "Save Ride"}
+                        ? "Update Booking"
+                        : "Save Ride"}
                   </button>
                 </div>
               </section>
@@ -2028,7 +2623,11 @@ export default function Home() {
         )}
 
         {message && (
-          <div style={messageStyle}>
+          <div
+            style={
+              messageStyle
+            }
+          >
             {message}
           </div>
         )}
@@ -2049,14 +2648,15 @@ function ScheduleRideRow({
 }) {
   return (
     <div
-      style={{
-        ...scheduleRowStyle,
-        opacity: ride.cancelled
-          ? 0.55
-          : 1,
-      }}
+      style={
+        scheduleRowStyle
+      }
     >
-      <div style={scheduleMainStyle}>
+      <div
+        style={
+          scheduleMainStyle
+        }
+      >
         <div>
           <strong>
             {formatTime(
@@ -2069,8 +2669,13 @@ function ScheduleRideRow({
           <strong>
             {ride.client_name}
           </strong>{" "}
-          <span style={mutedTextStyle}>
-            × {ride.group_size}
+          <span
+            style={
+              mutedTextStyle
+            }
+          >
+            ×{" "}
+            {ride.group_size}
           </span>
         </div>
 
@@ -2091,11 +2696,9 @@ function ScheduleRideRow({
         </div>
 
         <div>
-          {ride.cancelled
-            ? "🚫 Cancelled"
-            : toStatusText(
-                ride.to_status
-              )}
+          {toStatusText(
+            ride.to_status
+          )}
         </div>
 
         <div>
@@ -2106,12 +2709,16 @@ function ScheduleRideRow({
       </div>
 
       <div
-        style={scheduleActionsStyle}
+        style={
+          scheduleActionsStyle
+        }
       >
         <button
           type="button"
           onClick={() =>
-            openEditRide(ride)
+            openEditRide(
+              ride
+            )
           }
           style={
             smallActionButtonStyle
@@ -2123,21 +2730,614 @@ function ScheduleRideRow({
         <button
           type="button"
           onClick={() =>
-            toggleCancelled(ride)
+            toggleCancelled(
+              ride
+            )
           }
           style={
             smallActionButtonStyle
           }
         >
-          {ride.cancelled
-            ? "↩ Restore"
-            : "🚫 Cancel"}
+          🚫 Cancel
         </button>
 
         <button
           type="button"
           onClick={() =>
-            deleteRide(ride)
+            deleteRide(
+              ride
+            )
+          }
+          style={
+            deleteButtonStyle
+          }
+        >
+          🗑️ Delete
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ActiveToCard({
+  ride,
+  formatTime,
+  toStatusText,
+  getToTotal,
+  getReturnTotal,
+  updateRideStatus,
+  toggleToPaid,
+  openEditRide,
+  textToOnMyWay,
+  textToImHere,
+}) {
+  return (
+    <div
+      style={
+        rideCardStyle
+      }
+    >
+      <div
+        style={
+          rideCardHeaderStyle
+        }
+      >
+        <div>
+          <strong>
+            {ride.client_name}
+          </strong>
+
+          <span
+            style={
+              mutedTextStyle
+            }
+          >
+            {" "}
+            ·{" "}
+            {ride.group_size}{" "}
+            passengers
+          </span>
+        </div>
+
+        <button
+          type="button"
+          onClick={() =>
+            openEditRide(
+              ride
+            )
+          }
+          style={
+            smallActionButtonStyle
+          }
+        >
+          ✏️ Edit
+        </button>
+      </div>
+
+      <div>
+        🕐{" "}
+        {formatTime(
+          ride.pickup_time
+        )}
+      </div>
+
+      <div>
+        📍{" "}
+        {ride.pickup_location ||
+          "No pickup location"}
+      </div>
+
+      <div>
+        🚗 Driver:{" "}
+        {ride.to_driver ||
+          "Not assigned"}
+      </div>
+
+      <div>
+        📋 Status:{" "}
+        <strong>
+          {toStatusText(
+            ride.to_status
+          )}
+        </strong>
+      </div>
+
+      <div
+        style={
+          actionRowStyle
+        }
+      >
+        {(!ride.to_status ||
+          ride.to_status ===
+            "upcoming") && (
+          <button
+            type="button"
+            onClick={() =>
+              updateRideStatus(
+                ride.id,
+                "on_my_way"
+              )
+            }
+            style={
+              statusButtonStyle
+            }
+          >
+            🚗 On my way
+          </button>
+        )}
+
+        {ride.to_status ===
+          "on_my_way" && (
+          <button
+            type="button"
+            onClick={() =>
+              updateRideStatus(
+                ride.id,
+                "picked_up"
+              )
+            }
+            style={
+              statusButtonStyle
+            }
+          >
+            👥 Picked up
+          </button>
+        )}
+
+        {ride.to_status ===
+          "picked_up" && (
+          <button
+            type="button"
+            onClick={() =>
+              updateRideStatus(
+                ride.id,
+                "completed"
+              )
+            }
+            style={
+              statusButtonStyle
+            }
+          >
+            ✅ Dropped off
+          </button>
+        )}
+      </div>
+
+      <div
+        style={
+          paymentRowStyle
+        }
+      >
+        <button
+          type="button"
+          onClick={() =>
+            toggleToPaid(
+              ride
+            )
+          }
+          style={
+            ride.to_paid
+              ? paidButtonStyle
+              : unpaidButtonStyle
+          }
+        >
+          {ride.to_paid
+            ? "✅ TO Paid — Mark Unpaid"
+            : "💵 Mark TO Paid"}
+        </button>
+      </div>
+
+      <div
+        style={
+          messageButtonRowStyle
+        }
+      >
+        <button
+          type="button"
+          onClick={() =>
+            textToOnMyWay(
+              ride
+            )
+          }
+          style={
+            textMessageButtonStyle
+          }
+        >
+          📱 Text: On my way
+        </button>
+
+        <button
+          type="button"
+          onClick={() =>
+            textToImHere(
+              ride
+            )
+          }
+          style={
+            textMessageButtonStyle
+          }
+        >
+          📍 Text: I’m here
+        </button>
+      </div>
+
+      <div
+        style={{
+          marginTop:
+            "10px",
+        }}
+      >
+        💰 TO YQM:{" "}
+        <strong>
+          $
+          {getToTotal(
+            ride
+          ).toFixed(2)}
+        </strong>
+        {" — "}
+        {ride.to_paid
+          ? "Paid ✅"
+          : "Unpaid ❌"}
+      </div>
+
+      {ride.return_requested && (
+        <div>
+          🔁 Return booked:{" "}
+          <strong>
+            $
+            {getReturnTotal(
+              ride
+            ).toFixed(2)}
+          </strong>
+          {" — "}
+          {ride.return_paid
+            ? "Paid ✅"
+            : "Unpaid ❌"}
+        </div>
+      )}
+
+      <div
+        style={
+          bookingTotalStyle
+        }
+      >
+        Booking Total: $
+        {(
+          getToTotal(
+            ride
+          ) +
+          getReturnTotal(
+            ride
+          )
+        ).toFixed(2)}
+      </div>
+    </div>
+  );
+}
+
+function ReturnRideCard({
+  ride,
+  visiblePriority,
+  returnStatusText,
+  getReturnTotal,
+  updateReturnStatus,
+  toggleReturnPaid,
+  openEditRide,
+  textReturnOnMyWay,
+  textReturnImHere,
+}) {
+  return (
+    <div
+      style={
+        returnRideCardStyle
+      }
+    >
+      <div
+        style={
+          returnPriorityStyle
+        }
+      >
+        #{visiblePriority}
+      </div>
+
+      <div
+        style={
+          rideCardHeaderStyle
+        }
+      >
+        <div>
+          <strong>
+            {ride.client_name}
+          </strong>
+
+          <span
+            style={
+              mutedTextStyle
+            }
+          >
+            {" "}
+            ·{" "}
+            {ride.group_size}{" "}
+            passengers
+          </span>
+        </div>
+
+        <button
+          type="button"
+          onClick={() =>
+            openEditRide(
+              ride
+            )
+          }
+          style={
+            smallActionButtonStyle
+          }
+        >
+          ✏️ Edit
+        </button>
+      </div>
+
+      <div>
+        📍 Return to:{" "}
+        {ride.return_location ||
+          "No return location"}
+      </div>
+
+      <div>
+        🚗 Return Driver:{" "}
+        {ride.return_driver ||
+          "Not assigned"}
+      </div>
+
+      <div>
+        📋 Return Status:{" "}
+        <strong>
+          {returnStatusText(
+            ride.return_status
+          )}
+        </strong>
+      </div>
+
+      <div
+        style={
+          actionRowStyle
+        }
+      >
+        {(!ride.return_status ||
+          ride.return_status ===
+            "waiting") && (
+          <button
+            type="button"
+            onClick={() =>
+              updateReturnStatus(
+                ride.id,
+                "on_my_way"
+              )
+            }
+            style={
+              statusButtonStyle
+            }
+          >
+            🚗 On my way
+          </button>
+        )}
+
+        {ride.return_status ===
+          "on_my_way" && (
+          <button
+            type="button"
+            onClick={() =>
+              updateReturnStatus(
+                ride.id,
+                "picked_up"
+              )
+            }
+            style={
+              statusButtonStyle
+            }
+          >
+            👥 Picked up
+          </button>
+        )}
+
+        {ride.return_status ===
+          "picked_up" && (
+          <button
+            type="button"
+            onClick={() =>
+              updateReturnStatus(
+                ride.id,
+                "completed"
+              )
+            }
+            style={
+              statusButtonStyle
+            }
+          >
+            ✅ Returned home
+          </button>
+        )}
+      </div>
+
+      <div
+        style={
+          paymentRowStyle
+        }
+      >
+        <button
+          type="button"
+          onClick={() =>
+            toggleReturnPaid(
+              ride
+            )
+          }
+          style={
+            ride.return_paid
+              ? paidButtonStyle
+              : unpaidButtonStyle
+          }
+        >
+          {ride.return_paid
+            ? "✅ Return Paid — Mark Unpaid"
+            : "💵 Mark Return Paid"}
+        </button>
+      </div>
+
+      <div
+        style={
+          messageButtonRowStyle
+        }
+      >
+        <button
+          type="button"
+          onClick={() =>
+            textReturnOnMyWay(
+              ride
+            )
+          }
+          style={
+            textMessageButtonStyle
+          }
+        >
+          📱 Text: On my way
+        </button>
+
+        <button
+          type="button"
+          onClick={() =>
+            textReturnImHere(
+              ride
+            )
+          }
+          style={
+            textMessageButtonStyle
+          }
+        >
+          📍 Text: I’m here
+        </button>
+      </div>
+
+      <div
+        style={{
+          marginTop:
+            "10px",
+        }}
+      >
+        💰 Return:{" "}
+        <strong>
+          $
+          {getReturnTotal(
+            ride
+          ).toFixed(2)}
+        </strong>
+        {" — "}
+        {ride.return_paid
+          ? "Paid ✅"
+          : "Unpaid ❌"}
+      </div>
+    </div>
+  );
+}
+
+function CompletedRideCard({
+  ride,
+  getToTotal,
+  getReturnTotal,
+  openEditRide,
+  deleteRide,
+}) {
+  return (
+    <div
+      style={
+        completedRideStyle
+      }
+    >
+      <div>
+        <strong>
+          {ride.client_name}
+        </strong>{" "}
+        ·{" "}
+        {ride.group_size}{" "}
+        passengers
+      </div>
+
+      <div>
+        🚗 TO: Dropped off
+        ✅
+      </div>
+
+      <div>
+        💰 TO: $
+        {getToTotal(
+          ride
+        ).toFixed(2)}
+        {" — "}
+        {ride.to_paid
+          ? "Paid ✅"
+          : "Unpaid ❌"}
+      </div>
+
+      {ride.return_requested && (
+        <>
+          <div>
+            🔁 Return: Returned
+            home ✅
+          </div>
+
+          <div>
+            💰 Return: $
+            {getReturnTotal(
+              ride
+            ).toFixed(2)}
+            {" — "}
+            {ride.return_paid
+              ? "Paid ✅"
+              : "Unpaid ❌"}
+          </div>
+        </>
+      )}
+
+      <div
+        style={
+          bookingTotalStyle
+        }
+      >
+        Total: $
+        {(
+          getToTotal(
+            ride
+          ) +
+          getReturnTotal(
+            ride
+          )
+        ).toFixed(2)}
+      </div>
+
+      <div
+        style={
+          scheduleActionsStyle
+        }
+      >
+        <button
+          type="button"
+          onClick={() =>
+            openEditRide(
+              ride
+            )
+          }
+          style={
+            smallActionButtonStyle
+          }
+        >
+          ✏️ Edit
+        </button>
+
+        <button
+          type="button"
+          onClick={() =>
+            deleteRide(
+              ride
+            )
           }
           style={
             deleteButtonStyle
@@ -2156,20 +3356,34 @@ function SummaryBox({
   label,
 }) {
   return (
-    <div style={summaryBoxStyle}>
-      <div style={{ fontSize: "24px" }}>
+    <div
+      style={
+        summaryBoxStyle
+      }
+    >
+      <div
+        style={{
+          fontSize:
+            "24px",
+        }}
+      >
         {icon}
       </div>
 
       <strong
         style={{
-          fontSize: "22px",
+          fontSize:
+            "22px",
         }}
       >
         {value}
       </strong>
 
-      <span style={mutedTextStyle}>
+      <span
+        style={
+          mutedTextStyle
+        }
+      >
         {label}
       </span>
     </div>
@@ -2181,10 +3395,15 @@ function Field({
   children,
 }) {
   return (
-    <label style={fieldStyle}>
+    <label
+      style={
+        fieldStyle
+      }
+    >
       <span
         style={{
-          fontWeight: "bold",
+          fontWeight:
+            "bold",
         }}
       >
         {label}
@@ -2196,379 +3415,639 @@ function Field({
 }
 
 const pageStyle = {
-  minHeight: "100vh",
-  background: "#f5f7fa",
-  fontFamily: "Arial, sans-serif",
-  color: "#172033",
+  minHeight:
+    "100vh",
+  background:
+    "#f5f7fa",
+  fontFamily:
+    "Arial, sans-serif",
+  color:
+    "#172033",
 };
 
 const headerStyle = {
-  background: "#172033",
-  color: "white",
-  padding: "18px 22px",
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: "15px",
+  background:
+    "#172033",
+  color:
+    "white",
+  padding:
+    "18px 22px",
+  display:
+    "flex",
+  justifyContent:
+    "space-between",
+  alignItems:
+    "center",
+  gap:
+    "15px",
 };
 
 const headerSubtitleStyle = {
-  margin: "6px 0 0",
-  opacity: 0.8,
+  margin:
+    "6px 0 0",
+  opacity:
+    0.8,
 };
 
 const contentStyle = {
-  padding: "20px",
-  maxWidth: "1050px",
-  margin: "auto",
+  padding:
+    "20px",
+  maxWidth:
+    "1050px",
+  margin:
+    "auto",
 };
 
 const welcomeRowStyle = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: "15px",
-  flexWrap: "wrap",
+  display:
+    "flex",
+  justifyContent:
+    "space-between",
+  alignItems:
+    "center",
+  gap:
+    "15px",
+  flexWrap:
+    "wrap",
 };
 
 const summaryGridStyle = {
-  display: "grid",
+  display:
+    "grid",
   gridTemplateColumns:
     "repeat(auto-fit, minmax(140px, 1fr))",
-  gap: "12px",
-  marginTop: "20px",
+  gap:
+    "12px",
+  marginTop:
+    "20px",
 };
 
 const summaryBoxStyle = {
-  background: "white",
-  padding: "15px",
-  borderRadius: "12px",
+  background:
+    "white",
+  padding:
+    "15px",
+  borderRadius:
+    "12px",
   boxShadow:
     "0 2px 8px rgba(0,0,0,0.06)",
-  display: "flex",
-  flexDirection: "column",
-  gap: "4px",
+  display:
+    "flex",
+  flexDirection:
+    "column",
+  gap:
+    "4px",
 };
 
 const sectionStyle = {
-  marginTop: "25px",
-  background: "white",
-  padding: "20px",
-  borderRadius: "12px",
+  marginTop:
+    "25px",
+  background:
+    "white",
+  padding:
+    "20px",
+  borderRadius:
+    "12px",
   boxShadow:
     "0 2px 8px rgba(0,0,0,0.08)",
 };
 
 const completedSectionStyle = {
   ...sectionStyle,
-  marginBottom: "25px",
+  marginBottom:
+    "25px",
+};
+
+const cancelledSectionStyle = {
+  ...sectionStyle,
+  marginBottom:
+    "25px",
 };
 
 const sectionTitleStyle = {
-  marginTop: 0,
+  marginTop:
+    0,
 };
 
 const sectionSubtitleStyle = {
-  marginTop: "-5px",
-  color: "#667085",
-  fontSize: "14px",
+  marginTop:
+    "-5px",
+  color:
+    "#667085",
+  fontSize:
+    "14px",
 };
 
 const daySectionStyle = {
-  marginTop: "14px",
+  marginTop:
+    "14px",
   border:
     "1px solid #e5e7eb",
-  borderRadius: "10px",
-  overflow: "hidden",
+  borderRadius:
+    "10px",
+  overflow:
+    "hidden",
 };
 
 const daySummaryStyle = {
-  padding: "14px",
-  fontWeight: "bold",
-  cursor: "pointer",
-  background: "#f8fafc",
+  padding:
+    "14px",
+  fontWeight:
+    "bold",
+  cursor:
+    "pointer",
+  background:
+    "#f8fafc",
+};
+
+const returnDaySummaryStyle = {
+  padding:
+    "14px",
+  fontWeight:
+    "bold",
+  cursor:
+    "pointer",
+  background:
+    "#eff6ff",
 };
 
 const completedDaySummaryStyle = {
-  padding: "14px",
-  fontWeight: "bold",
-  cursor: "pointer",
-  background: "#f0fdf4",
+  padding:
+    "14px",
+  fontWeight:
+    "bold",
+  cursor:
+    "pointer",
+  background:
+    "#f0fdf4",
+};
+
+const cancelledDaySummaryStyle = {
+  padding:
+    "14px",
+  fontWeight:
+    "bold",
+  cursor:
+    "pointer",
+  background:
+    "#fef2f2",
 };
 
 const scheduleListStyle = {
-  padding: "0 14px",
+  padding:
+    "0 14px",
 };
 
 const scheduleRowStyle = {
-  padding: "12px 0",
+  padding:
+    "12px 0",
   borderBottom:
     "1px solid #e5e7eb",
 };
 
 const scheduleMainStyle = {
-  display: "grid",
+  display:
+    "grid",
   gridTemplateColumns:
     "90px minmax(130px, 1fr) 120px 120px 130px minmax(140px, 1fr)",
-  gap: "8px",
-  alignItems: "center",
-  overflowX: "auto",
-  fontSize: "14px",
+  gap:
+    "8px",
+  alignItems:
+    "center",
+  overflowX:
+    "auto",
+  fontSize:
+    "14px",
 };
 
 const scheduleActionsStyle = {
-  display: "flex",
-  gap: "8px",
-  flexWrap: "wrap",
-  marginTop: "8px",
+  display:
+    "flex",
+  gap:
+    "8px",
+  flexWrap:
+    "wrap",
+  marginTop:
+    "8px",
 };
 
 const dateCardContainerStyle = {
-  padding: "0 14px",
+  padding:
+    "0 14px",
 };
 
 const rideCardStyle = {
-  padding: "16px 0",
+  padding:
+    "16px 0",
   borderBottom:
     "1px solid #e5e7eb",
-  lineHeight: 1.7,
+  lineHeight:
+    1.7,
+};
+
+const returnRideCardStyle = {
+  position:
+    "relative",
+  padding:
+    "18px 0 18px 52px",
+  borderBottom:
+    "1px solid #e5e7eb",
+  lineHeight:
+    1.7,
+};
+
+const returnPriorityStyle = {
+  position:
+    "absolute",
+  top:
+    "18px",
+  left:
+    "0",
+  width:
+    "38px",
+  height:
+    "38px",
+  borderRadius:
+    "50%",
+  background:
+    "#172033",
+  color:
+    "white",
+  display:
+    "flex",
+  alignItems:
+    "center",
+  justifyContent:
+    "center",
+  fontWeight:
+    "bold",
+  fontSize:
+    "14px",
 };
 
 const completedRideStyle = {
-  padding: "14px 0",
+  padding:
+    "14px 0",
   borderBottom:
     "1px solid #e5e7eb",
-  lineHeight: 1.7,
+  lineHeight:
+    1.7,
 };
 
 const rideCardHeaderStyle = {
-  display: "flex",
+  display:
+    "flex",
   justifyContent:
     "space-between",
-  alignItems: "center",
-  gap: "10px",
-  flexWrap: "wrap",
+  alignItems:
+    "center",
+  gap:
+    "10px",
+  flexWrap:
+    "wrap",
 };
 
 const actionRowStyle = {
-  display: "flex",
-  gap: "8px",
-  flexWrap: "wrap",
-  marginTop: "10px",
+  display:
+    "flex",
+  gap:
+    "8px",
+  flexWrap:
+    "wrap",
+  marginTop:
+    "10px",
 };
 
 const paymentRowStyle = {
-  display: "flex",
-  gap: "8px",
-  flexWrap: "wrap",
-  marginTop: "10px",
+  display:
+    "flex",
+  gap:
+    "8px",
+  flexWrap:
+    "wrap",
+  marginTop:
+    "10px",
 };
 
 const messageButtonRowStyle = {
-  display: "flex",
-  gap: "8px",
-  flexWrap: "wrap",
-  marginTop: "10px",
+  display:
+    "flex",
+  gap:
+    "8px",
+  flexWrap:
+    "wrap",
+  marginTop:
+    "10px",
 };
 
 const bookingTotalStyle = {
-  fontWeight: "bold",
-  marginTop: "5px",
+  fontWeight:
+    "bold",
+  marginTop:
+    "5px",
 };
 
 const formCardStyle = {
-  background: "white",
-  padding: "20px",
-  marginTop: "25px",
-  borderRadius: "12px",
+  background:
+    "white",
+  padding:
+    "20px",
+  marginTop:
+    "25px",
+  borderRadius:
+    "12px",
   boxShadow:
     "0 2px 8px rgba(0,0,0,0.08)",
 };
 
 const formHeaderStyle = {
-  display: "flex",
+  display:
+    "flex",
   justifyContent:
     "space-between",
-  alignItems: "center",
-  gap: "10px",
-  marginBottom: "20px",
+  alignItems:
+    "center",
+  gap:
+    "10px",
+  marginBottom:
+    "20px",
 };
 
 const formSectionTitleStyle = {
-  marginTop: "30px",
+  marginTop:
+    "30px",
 };
 
 const gridStyle = {
-  display: "grid",
+  display:
+    "grid",
   gridTemplateColumns:
     "repeat(auto-fit, minmax(220px, 1fr))",
-  gap: "15px",
+  gap:
+    "15px",
 };
 
 const fieldStyle = {
-  display: "flex",
-  flexDirection: "column",
-  gap: "7px",
+  display:
+    "flex",
+  flexDirection:
+    "column",
+  gap:
+    "7px",
 };
 
 const inputStyle = {
-  padding: "12px",
-  borderRadius: "8px",
+  padding:
+    "12px",
+  borderRadius:
+    "8px",
   border:
     "1px solid #cbd5e1",
-  fontSize: "16px",
-  background: "white",
+  fontSize:
+    "16px",
+  background:
+    "white",
 };
 
 const buttonStyle = {
-  width: "100%",
-  padding: "16px",
-  marginTop: "20px",
-  background: "#172033",
-  color: "white",
-  border: "none",
-  borderRadius: "10px",
-  fontSize: "16px",
-  fontWeight: "bold",
-  cursor: "pointer",
+  width:
+    "100%",
+  padding:
+    "16px",
+  marginTop:
+    "20px",
+  background:
+    "#172033",
+  color:
+    "white",
+  border:
+    "none",
+  borderRadius:
+    "10px",
+  fontSize:
+    "16px",
+  fontWeight:
+    "bold",
+  cursor:
+    "pointer",
 };
 
 const newRideButtonStyle = {
-  padding: "12px 18px",
-  background: "#172033",
-  color: "white",
-  border: "none",
-  borderRadius: "10px",
-  fontSize: "15px",
-  fontWeight: "bold",
-  cursor: "pointer",
+  padding:
+    "12px 18px",
+  background:
+    "#172033",
+  color:
+    "white",
+  border:
+    "none",
+  borderRadius:
+    "10px",
+  fontSize:
+    "15px",
+  fontWeight:
+    "bold",
+  cursor:
+    "pointer",
 };
 
 const saveButtonStyle = {
-  padding: "14px 18px",
-  background: "#1f7a4d",
-  color: "white",
-  border: "none",
-  borderRadius: "10px",
-  fontSize: "16px",
-  fontWeight: "bold",
-  cursor: "pointer",
-  flex: 1,
+  padding:
+    "14px 18px",
+  background:
+    "#1f7a4d",
+  color:
+    "white",
+  border:
+    "none",
+  borderRadius:
+    "10px",
+  fontSize:
+    "16px",
+  fontWeight:
+    "bold",
+  cursor:
+    "pointer",
+  flex:
+    1,
 };
 
 const cancelButtonStyle = {
-  padding: "14px 18px",
-  background: "white",
-  color: "#172033",
+  padding:
+    "14px 18px",
+  background:
+    "white",
+  color:
+    "#172033",
   border:
     "1px solid #cbd5e1",
-  borderRadius: "10px",
-  fontSize: "16px",
-  fontWeight: "bold",
-  cursor: "pointer",
+  borderRadius:
+    "10px",
+  fontSize:
+    "16px",
+  fontWeight:
+    "bold",
+  cursor:
+    "pointer",
 };
 
 const formActionRowStyle = {
-  display: "flex",
-  gap: "10px",
-  marginTop: "20px",
+  display:
+    "flex",
+  gap:
+    "10px",
+  marginTop:
+    "20px",
 };
 
 const statusButtonStyle = {
-  padding: "10px 12px",
-  borderRadius: "8px",
+  padding:
+    "10px 12px",
+  borderRadius:
+    "8px",
   border:
     "1px solid #cbd5e1",
-  background: "white",
-  fontSize: "14px",
-  fontWeight: "bold",
-  cursor: "pointer",
+  background:
+    "white",
+  fontSize:
+    "14px",
+  fontWeight:
+    "bold",
+  cursor:
+    "pointer",
 };
 
 const unpaidButtonStyle = {
-  padding: "10px 12px",
-  borderRadius: "8px",
+  padding:
+    "10px 12px",
+  borderRadius:
+    "8px",
   border:
     "1px solid #16a34a",
-  background: "#f0fdf4",
-  color: "#166534",
-  fontSize: "14px",
-  fontWeight: "bold",
-  cursor: "pointer",
+  background:
+    "#f0fdf4",
+  color:
+    "#166534",
+  fontSize:
+    "14px",
+  fontWeight:
+    "bold",
+  cursor:
+    "pointer",
 };
 
 const paidButtonStyle = {
-  padding: "10px 12px",
-  borderRadius: "8px",
+  padding:
+    "10px 12px",
+  borderRadius:
+    "8px",
   border:
     "1px solid #86efac",
-  background: "#dcfce7",
-  color: "#166534",
-  fontSize: "14px",
-  fontWeight: "bold",
-  cursor: "pointer",
+  background:
+    "#dcfce7",
+  color:
+    "#166534",
+  fontSize:
+    "14px",
+  fontWeight:
+    "bold",
+  cursor:
+    "pointer",
 };
 
 const textMessageButtonStyle = {
-  padding: "10px 12px",
-  borderRadius: "8px",
+  padding:
+    "10px 12px",
+  borderRadius:
+    "8px",
   border:
     "1px solid #94a3b8",
-  background: "#f8fafc",
-  fontSize: "14px",
-  fontWeight: "bold",
-  cursor: "pointer",
+  background:
+    "#f8fafc",
+  fontSize:
+    "14px",
+  fontWeight:
+    "bold",
+  cursor:
+    "pointer",
 };
 
 const smallActionButtonStyle = {
-  padding: "7px 10px",
-  borderRadius: "7px",
+  padding:
+    "7px 10px",
+  borderRadius:
+    "7px",
   border:
     "1px solid #cbd5e1",
-  background: "white",
-  fontSize: "13px",
-  fontWeight: "bold",
-  cursor: "pointer",
+  background:
+    "white",
+  fontSize:
+    "13px",
+  fontWeight:
+    "bold",
+  cursor:
+    "pointer",
 };
 
 const deleteButtonStyle = {
-  padding: "7px 10px",
-  borderRadius: "7px",
+  padding:
+    "7px 10px",
+  borderRadius:
+    "7px",
   border:
     "1px solid #ef4444",
-  background: "white",
-  color: "#b91c1c",
-  fontSize: "13px",
-  fontWeight: "bold",
-  cursor: "pointer",
+  background:
+    "white",
+  color:
+    "#b91c1c",
+  fontSize:
+    "13px",
+  fontWeight:
+    "bold",
+  cursor:
+    "pointer",
 };
 
 const closeButtonStyle = {
-  border: "none",
-  background: "transparent",
-  fontSize: "22px",
-  cursor: "pointer",
+  border:
+    "none",
+  background:
+    "transparent",
+  fontSize:
+    "22px",
+  cursor:
+    "pointer",
 };
 
 const logoutButtonStyle = {
-  padding: "8px 12px",
-  borderRadius: "8px",
+  padding:
+    "8px 12px",
+  borderRadius:
+    "8px",
   border:
     "1px solid rgba(255,255,255,0.35)",
-  background: "transparent",
-  color: "white",
-  cursor: "pointer",
+  background:
+    "transparent",
+  color:
+    "white",
+  cursor:
+    "pointer",
 };
 
 const messageStyle = {
-  marginTop: "20px",
-  padding: "15px",
-  background: "white",
-  borderRadius: "10px",
+  marginTop:
+    "20px",
+  padding:
+    "15px",
+  background:
+    "white",
+  borderRadius:
+    "10px",
   border:
     "1px solid #cbd5e1",
 };
 
 const mutedTextStyle = {
-  color: "#667085",
+  color:
+    "#667085",
 };
