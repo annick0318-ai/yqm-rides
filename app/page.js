@@ -387,6 +387,60 @@ export default function Home() {
     await loadRides();
   }
 
+  async function toggleToPaid(ride) {
+    const newPaidStatus = !ride.to_paid;
+
+    const { error } = await supabase
+      .from("Bookings")
+      .update({
+        to_paid: newPaidStatus,
+      })
+      .eq("id", ride.id);
+
+    if (error) {
+      setMessage(
+        "Could not update TO payment: " +
+          error.message
+      );
+      return;
+    }
+
+    setMessage(
+      newPaidStatus
+        ? `${ride.client_name}: TO ride marked paid ✅`
+        : `${ride.client_name}: TO ride marked unpaid.`
+    );
+
+    await loadRides();
+  }
+
+  async function toggleReturnPaid(ride) {
+    const newPaidStatus = !ride.return_paid;
+
+    const { error } = await supabase
+      .from("Bookings")
+      .update({
+        return_paid: newPaidStatus,
+      })
+      .eq("id", ride.id);
+
+    if (error) {
+      setMessage(
+        "Could not update return payment: " +
+          error.message
+      );
+      return;
+    }
+
+    setMessage(
+      newPaidStatus
+        ? `${ride.client_name}: return ride marked paid ✅`
+        : `${ride.client_name}: return ride marked unpaid.`
+    );
+
+    await loadRides();
+  }
+
   async function toggleCancelled(ride) {
     const { error } = await supabase
       .from("Bookings")
@@ -1000,6 +1054,24 @@ export default function Home() {
                     )}
                   </div>
 
+                  <div style={paymentRowStyle}>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        toggleToPaid(ride)
+                      }
+                      style={
+                        ride.to_paid
+                          ? paidButtonStyle
+                          : unpaidButtonStyle
+                      }
+                    >
+                      {ride.to_paid
+                        ? "✅ TO Paid — Mark Unpaid"
+                        : "💵 Mark TO Paid"}
+                    </button>
+                  </div>
+
                   <div
                     style={messageButtonRowStyle}
                   >
@@ -1197,6 +1269,24 @@ export default function Home() {
                         ✅ Returned home
                       </button>
                     )}
+                  </div>
+
+                  <div style={paymentRowStyle}>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        toggleReturnPaid(ride)
+                      }
+                      style={
+                        ride.return_paid
+                          ? paidButtonStyle
+                          : unpaidButtonStyle
+                      }
+                    >
+                      {ride.return_paid
+                        ? "✅ Return Paid — Mark Unpaid"
+                        : "💵 Mark Return Paid"}
+                    </button>
                   </div>
 
                   <div
@@ -1889,6 +1979,13 @@ const actionRowStyle = {
   marginTop: "10px",
 };
 
+const paymentRowStyle = {
+  display: "flex",
+  gap: "8px",
+  flexWrap: "wrap",
+  marginTop: "10px",
+};
+
 const messageButtonRowStyle = {
   display: "flex",
   gap: "8px",
@@ -2005,6 +2102,30 @@ const statusButtonStyle = {
   border:
     "1px solid #cbd5e1",
   background: "white",
+  fontSize: "14px",
+  fontWeight: "bold",
+  cursor: "pointer",
+};
+
+const unpaidButtonStyle = {
+  padding: "10px 12px",
+  borderRadius: "8px",
+  border:
+    "1px solid #16a34a",
+  background: "#f0fdf4",
+  color: "#166534",
+  fontSize: "14px",
+  fontWeight: "bold",
+  cursor: "pointer",
+};
+
+const paidButtonStyle = {
+  padding: "10px 12px",
+  borderRadius: "8px",
+  border:
+    "1px solid #86efac",
+  background: "#dcfce7",
+  color: "#166534",
   fontSize: "14px",
   fontWeight: "bold",
   cursor: "pointer",
