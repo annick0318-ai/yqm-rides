@@ -2162,10 +2162,9 @@ function ScheduleRideRow({
     <div style={scheduleRowStyle}>
       <div style={scheduleMainStyle}>
         <div>
+          🕐{" "}
           <strong>
-            {formatTime(
-              ride.pickup_time
-            )}
+            {formatTime(ride.pickup_time)}
           </strong>
         </div>
 
@@ -2173,11 +2172,7 @@ function ScheduleRideRow({
           <strong>
             {ride.client_name}
           </strong>{" "}
-          <span
-            style={
-              mutedTextStyle
-            }
-          >
+          <span style={mutedTextStyle}>
             × {ride.group_size}
           </span>
         </div>
@@ -2190,9 +2185,7 @@ function ScheduleRideRow({
 
         <div>
           💰 $
-          {getToTotal(
-            ride
-          ).toFixed(2)}{" "}
+          {getToTotal(ride).toFixed(2)}{" "}
           {ride.to_paid
             ? "✅"
             : "❌"}
